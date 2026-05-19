@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'Ibrand';
+  src: url('/fonts/Ibrand.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

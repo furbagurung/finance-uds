@@ -5,160 +5,209 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 
 function formatCurrency(amount: unknown) {
-    return `Rs. ${Number(amount).toLocaleString("en-IN")}`;
+  return `Rs. ${Number(amount).toLocaleString("en-IN")}`;
 }
 
-export default async function TransactionsPage() {
-    const user = await getCurrentUser();
+type TransactionsPageProps = {
+  searchParams: Promise<{
+    type?: string;
+    clientId?: string;
+    projectId?: string;
+    from?: string;
+    to?: string;
+  }>;
+};
 
-    if (!user) {
-        redirect("/login");
-    }
+export default async function TransactionsPage({
+  searchParams,
+}: TransactionsPageProps) {
+  const params = await searchParams;
+  const user = await getCurrentUser();
 
-    const transactions = await prisma.transaction.findMany({
-        orderBy: {
-            date: "desc",
+  if (!user) {
+    redirect("/login");
+  }
+  const selectedType = params.type || "";
+  const selectedClientId = params.clientId || "";
+  const selectedProjectId = params.projectId || "";
+  const fromDate = params.from || "";
+  const toDate = params.to || "";
+
+  const transactionWhere = {
+    ...(selectedType ? { type: selectedType as never } : {}),
+    ...(selectedClientId ? { clientId: selectedClientId } : {}),
+    ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
+    ...(fromDate || toDate
+      ? {
+          date: {
+            ...(fromDate ? { gte: new Date(fromDate) } : {}),
+            ...(toDate ? { lte: new Date(toDate) } : {}),
+          },
+        }
+      : {}),
+  };
+  const transactions = await prisma.transaction.findMany({
+    where: transactionWhere,
+    orderBy: {
+      date: "desc",
+    },
+    include: {
+      category: true,
+      client: true,
+      project: true,
+      attachments: true,
+      createdBy: {
+        select: {
+          name: true,
         },
-        include: {
-            category: true,
-            client: true,
-            project: true,
-            attachments: true,
-            createdBy: {
-                select: {
-                    name: true,
-                },
-            },
-        },
-        take: 100,
-    });
+      },
+    },
+    take: 100,
+  });
 
-    return (
-        <DashboardShell user={user}>
-            <div className="space-y-6">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-3xl font-bold text-slate-950">Transactions</h1>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Track investments, income, expenses, withdrawals, and client costs.
-                        </p>
-                    </div>
+  return (
+    <DashboardShell user={user}>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-950">Transactions</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Track investments, income, expenses, withdrawals, and client
+              costs.
+            </p>
+          </div>
 
-                    <Button asChild>
-                        <Link href="/transactions/new">Add Transaction</Link>
-                    </Button>
-                </div>
+          <Button asChild>
+            <Link href="/transactions/new">Add Transaction</Link>
+          </Button>
+        </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Recent Transactions</CardTitle>
-                        <CardDescription>
-                            This follows your spreadsheet flow: date, paid by, done for,
-                            amount, and receipt/invoice.
-                        </CardDescription>
-                    </CardHeader>
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Transactions</CardTitle>
+            <CardDescription>
+              This follows your spreadsheet flow: date, paid by, done for,
+              amount, and receipt/invoice.
+            </CardDescription>
+          </CardHeader>
 
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Paid By</TableHead>
-                                    <TableHead>Done For</TableHead>
-                                    <TableHead>Scope</TableHead>
-                                    <TableHead>Amount</TableHead>
-                                    <TableHead>Receipt</TableHead>
-                                </TableRow>
-                            </TableHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Paid By</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Done For</TableHead>
+                  <TableHead>Scope</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Receipt</TableHead>
+                </TableRow>
+              </TableHeader>
 
-                            <TableBody>
-                                {transactions.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={7}
-                                            className="py-10 text-center text-sm text-slate-500"
-                                        >
-                                            No transactions added yet.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    transactions.map((transaction) => (
-                                        <TableRow key={transaction.id}>
-                                            <TableCell>
-                                                {new Intl.DateTimeFormat("en-NP", {
-                                                    dateStyle: "medium",
-                                                }).format(transaction.date)}
-                                            </TableCell>
+              <TableBody>
+                {transactions.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={9}
+                      className="py-10 text-center text-sm text-slate-500"
+                    >
+                      No transactions added yet.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  transactions.map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell>
+                        {new Intl.DateTimeFormat("en-NP", {
+                          dateStyle: "medium",
+                        }).format(transaction.date)}
+                      </TableCell>
 
-                                            <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        transaction.type === "INCOME" ||
-                                                            transaction.type === "INVESTMENT"
-                                                            ? "default"
-                                                            : "secondary"
-                                                    }
-                                                >
-                                                    {transaction.type}
-                                                </Badge>
-                                            </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            transaction.type === "INCOME" ||
+                            transaction.type === "INVESTMENT"
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          {transaction.type}
+                        </Badge>
+                      </TableCell>
 
-                                            <TableCell>{transaction.paidBy || "-"}</TableCell>
+                      <TableCell>{transaction.paidBy || "-"}</TableCell>
 
-                                            <TableCell>
-                                                <div className="font-medium text-slate-950">
-                                                    {transaction.doneFor || transaction.title}
-                                                </div>
-                                                {transaction.category ? (
-                                                    <div className="text-xs text-slate-500">
-                                                        {transaction.category.name}
-                                                    </div>
-                                                ) : null}
-                                            </TableCell>
+                      <TableCell>{transaction.client?.name || "-"}</TableCell>
 
-                                            <TableCell>{transaction.expenseScope || "-"}</TableCell>
+                      <TableCell>{transaction.project?.name || "-"}</TableCell>
 
-                                            <TableCell className="font-semibold">
-                                                {formatCurrency(transaction.amount)}
-                                            </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-slate-950">
+                          {transaction.doneFor || transaction.title}
+                        </div>
+                        {transaction.category ? (
+                          <div className="text-xs text-slate-500">
+                            {transaction.category.name}
+                          </div>
+                        ) : null}
+                      </TableCell>
 
-                                            <TableCell>
-                                                {transaction.attachments.length > 0 ? (
-                                                    <Badge variant="outline">
-                                                        {transaction.attachments.length} file
-                                                    </Badge>
-                                                ) : (
-                                                    <span className="text-sm text-slate-400">
-                                                        No file
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            </div>
-        </DashboardShell>
-    );
+                      <TableCell>{transaction.expenseScope || "-"}</TableCell>
+
+                      <TableCell className="font-semibold">
+                        {formatCurrency(transaction.amount)}
+                      </TableCell>
+
+                      <TableCell>
+                        {transaction.attachments.length > 0 ? (
+                          <div className="space-y-1">
+                            {transaction.attachments.map((attachment) => (
+                              <Link
+                                key={attachment.id}
+                                href={attachment.fileUrl}
+                                target="_blank"
+                                className="block text-sm font-medium text-orange-600 hover:underline"
+                              >
+                                View File
+                              </Link>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-slate-400">
+                            No file
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardShell>
+  );
 }

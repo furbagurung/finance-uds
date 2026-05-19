@@ -20,10 +20,10 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-  title: "Transactions",
-  href: "/transactions",
-  icon: Wallet,
-},
+    title: "Transactions",
+    href: "/transactions",
+    icon: Wallet,
+  },
   {
     title: "Expenses",
     href: "/expenses",
@@ -74,13 +74,16 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   return (
     <div className="min-h-screen bg-slate-50">
       <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-slate-200 bg-white px-4 py-5 lg:block">
-        <div className="px-3">
-          <p className="text-sm font-semibold text-orange-500">
-            United Digital Service
-          </p>
-          <h1 className="mt-1 text-xl font-bold text-slate-950">
-            Finance Tracker
-          </h1>
+        <div className="px-3 flex items-center gap-3">
+          <img
+            src="/uds.svg"
+            alt="UDS Logo"
+            className="h-12 w-auto flex-shrink-0"
+          />
+          <div className="flex flex-col">
+            <p style={{ fontFamily: "Ibrand", color: "#15223e" }}>Finance</p>
+            <p style={{ fontFamily: "Ibrand", color: "#15223e" }}>Tracker</p>
+          </div>
         </div>
 
         <Separator className="my-5" />
