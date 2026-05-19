@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
+import { TransactionFilters } from "@/components/transaction-filters";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -45,9 +46,11 @@ export default async function TransactionsPage({
   if (!user) {
     redirect("/login");
   }
-  const selectedType = params.type || "";
-  const selectedClientId = params.clientId || "";
-  const selectedProjectId = params.projectId || "";
+  const selectedType = params.type && params.type !== "ALL" ? params.type : "";
+  const selectedClientId =
+    params.clientId && params.clientId !== "ALL" ? params.clientId : "";
+  const selectedProjectId =
+    params.projectId && params.projectId !== "ALL" ? params.projectId : "";
   const fromDate = params.from || "";
   const toDate = params.to || "";
 
@@ -83,6 +86,28 @@ export default async function TransactionsPage({
     take: 100,
   });
 
+  const clients = await prisma.client.findMany({
+    orderBy: {
+      name: "asc",
+    },
+    select: {
+      id: true,
+      name: true,
+      companyName: true,
+    },
+  });
+
+  const projects = await prisma.project.findMany({
+    orderBy: {
+      name: "asc",
+    },
+    select: {
+      id: true,
+      name: true,
+      clientId: true,
+    },
+  });
+
   return (
     <DashboardShell user={user}>
       <div className="space-y-6">
@@ -99,6 +124,27 @@ export default async function TransactionsPage({
             <Link href="/transactions/new">Add Transaction</Link>
           </Button>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Filters</CardTitle>
+            <CardDescription>
+              Filter transactions by type, client, project, and date range.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <TransactionFilters
+              clients={clients}
+              projects={projects}
+              selectedType={selectedType}
+              selectedClientId={selectedClientId}
+              selectedProjectId={selectedProjectId}
+              fromDate={fromDate}
+              toDate={toDate}
+            />
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
@@ -164,9 +210,12 @@ export default async function TransactionsPage({
                       <TableCell>{transaction.project?.name || "-"}</TableCell>
 
                       <TableCell>
-                        <div className="font-medium text-slate-950">
+                        <Link
+                          href={`/transactions/${transaction.id}`}
+                          className="font-medium text-slate-950 hover:text-orange-600 hover:underline"
+                        >
                           {transaction.doneFor || transaction.title}
-                        </div>
+                        </Link>
                         {transaction.category ? (
                           <div className="text-xs text-slate-500">
                             {transaction.category.name}
