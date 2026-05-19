@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/current-user";
-import { LogoutButton } from "@/components/logout-button";
+import { DashboardShell } from "@/components/dashboard-shell";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -17,34 +16,63 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-8">
-      <Card className="rounded-3xl">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-orange-500">
-                United Digital Service
-              </p>
-
-              <CardTitle className="mt-2 text-3xl">
-                Finance Dashboard
-              </CardTitle>
-
-              <CardDescription className="mt-2">
-                Welcome back, {user.name}. You are logged in as {user.role}.
-              </CardDescription>
-            </div>
-
-            <LogoutButton />
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          <p className="text-sm text-slate-500">
-            Dashboard setup will continue in the next module.
+    <DashboardShell user={user}>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-950">
+            Finance Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Track income, expenses, projects, and company financial activity.
           </p>
-        </CardContent>
-      </Card>
-    </main>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-slate-500">
+                Total Income
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-slate-950">Rs. 0</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-slate-500">
+                Total Expenses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-slate-950">Rs. 0</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-slate-500">
+                Net Profit
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-slate-950">Rs. 0</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-slate-500">
+                Pending Payments
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold text-slate-950">Rs. 0</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </DashboardShell>
   );
 }
