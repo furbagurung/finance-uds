@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
+import { createActivityLog } from "@/lib/activity-log";
 
 export async function GET() {
   try {
@@ -9,7 +10,7 @@ export async function GET() {
     if (!user) {
       return NextResponse.json(
         { message: "Not authenticated." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -35,7 +36,7 @@ export async function GET() {
 
     return NextResponse.json(
       { message: "Failed to fetch clients." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         { message: "Not authenticated." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
     if (!name) {
       return NextResponse.json(
         { message: "Client name is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,6 +76,20 @@ export async function POST(request: Request) {
         email,
         phone,
         address,
+        createdById: user.id,
+      },
+    });
+
+    await createActivityLog({
+      action: "CREATE",
+      entity: "CLIENT",
+      entityId: client.id,
+      userId: user.id,
+      message: `Created client: ${client.name}`,
+      metadata: {
+        companyName: client.companyName,
+        email: client.email,
+        phone: client.phone,
       },
     });
 
@@ -83,14 +98,14 @@ export async function POST(request: Request) {
         message: "Client created successfully.",
         client,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Clients POST error:", error);
 
     return NextResponse.json(
       { message: "Failed to create client." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

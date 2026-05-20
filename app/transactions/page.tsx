@@ -120,9 +120,36 @@ export default async function TransactionsPage({
             </p>
           </div>
 
-          <Button asChild>
-            <Link href="/transactions/new">Add Transaction</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link
+                href={`/api/transactions/export?${new URLSearchParams({
+                  ...(selectedType ? { type: selectedType } : {}),
+                  ...(selectedClientId ? { clientId: selectedClientId } : {}),
+                  ...(selectedProjectId
+                    ? { projectId: selectedProjectId }
+                    : {}),
+                  ...(fromDate ? { from: fromDate } : {}),
+                  ...(toDate ? { to: toDate } : {}),
+                }).toString()}`}
+                target="_blank"
+              >
+                Export CSV
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline">
+              <Link href="/transactions/new?type=INCOME">Add Income</Link>
+            </Button>
+
+            <Button asChild variant="outline">
+              <Link href="/transactions/new?type=EXPENSE">Add Expense</Link>
+            </Button>
+
+            <Button asChild>
+              <Link href="/transactions/new">Add Transaction</Link>
+            </Button>
+          </div>
         </div>
 
         <Card>

@@ -67,13 +67,25 @@ const paymentMethods: PaymentMethod[] = [
   "OTHER",
 ];
 
-export function TransactionForm() {
+type TransactionFormProps = {
+  defaultType?: string;
+};
+
+export function TransactionForm({ defaultType }: TransactionFormProps) {
   const router = useRouter();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [type, setType] = useState<TransactionType>("EXPENSE");
+  const initialType: TransactionType =
+  defaultType === "INVESTMENT" ||
+  defaultType === "INCOME" ||
+  defaultType === "EXPENSE" ||
+  defaultType === "WITHDRAWAL"
+    ? defaultType
+    : "EXPENSE";
+
+const [type, setType] = useState<TransactionType>(initialType);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] =

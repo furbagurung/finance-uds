@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ProjectStatus } from "@prisma/client";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
+import { createActivityLog } from "@/lib/activity-log";
 
 export async function GET() {
   try {
@@ -10,7 +11,7 @@ export async function GET() {
     if (!user) {
       return NextResponse.json(
         { message: "Not authenticated." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -36,7 +37,7 @@ export async function GET() {
 
     return NextResponse.json(
       { message: "Failed to fetch projects." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         { message: "Not authenticated." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -66,17 +67,16 @@ export async function POST(request: Request) {
     if (!name) {
       return NextResponse.json(
         { message: "Project name is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (body.status && !Object.values(ProjectStatus).includes(status)) {
       return NextResponse.json(
         { message: "Invalid project status." },
-        { status: 400 }
+        { status: 400 },
       );
     }
-
     const project = await prisma.project.create({
       data: {
         name,
@@ -85,9 +85,24 @@ export async function POST(request: Request) {
         endDate,
         status,
         clientId,
+        createdById: user.id,
       },
       include: {
         client: true,
+      },
+    });
+
+    await createActivityLog({
+      action: "CREATE",
+      entity: "PROJECT",
+      entityId: project.id,
+      userId: user.id,
+      message: `Created project: ${project.name}`,
+      metadata: {
+        clientId: project.clientId,
+        clientName: project.client?.name,
+        budget: project.budget ? Number(project.budget) : null,
+        status: project.status,
       },
     });
 
@@ -96,14 +111,14 @@ export async function POST(request: Request) {
         message: "Project created successfully.",
         project,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Projects POST error:", error);
 
     return NextResponse.json(
       { message: "Failed to create project." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

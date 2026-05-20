@@ -108,7 +108,12 @@ export default async function ProjectsPage() {
                   projects.map((project) => (
                     <TableRow key={project.id}>
                       <TableCell className="font-medium">
-                        {project.name}
+                        <Link
+                          href={`/projects/${project.id}`}
+                          className="hover:text-orange-600 hover:underline"
+                        >
+                          {project.name}
+                        </Link>
                       </TableCell>
 
                       <TableCell>{project.client?.name || "-"}</TableCell>

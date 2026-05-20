@@ -3,7 +3,16 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { TransactionForm } from "@/components/transaction-form";
 import { getCurrentUser } from "@/lib/current-user";
 
-export default async function NewTransactionPage() {
+type NewTransactionPageProps = {
+  searchParams: Promise<{
+    type?: string;
+  }>;
+};
+
+export default async function NewTransactionPage({
+  searchParams,
+}: NewTransactionPageProps) {
+  const params = await searchParams;
   const user = await getCurrentUser();
 
   if (!user) {
@@ -23,7 +32,7 @@ export default async function NewTransactionPage() {
           </p>
         </div>
 
-        <TransactionForm />
+        <TransactionForm defaultType={params.type} />
       </div>
     </DashboardShell>
   );

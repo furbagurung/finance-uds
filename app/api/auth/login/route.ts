@@ -10,13 +10,15 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const email = String(body.email || "").trim().toLowerCase();
+    const email = String(body.email || "")
+      .trim()
+      .toLowerCase();
     const password = String(body.password || "");
 
     if (!email || !password) {
       return NextResponse.json(
         { message: "Email and password are required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -24,10 +26,17 @@ export async function POST(request: Request) {
       where: { email },
     });
 
-    if (!user || !user.isActive) {
+    if (!user) {
       return NextResponse.json(
         { message: "Invalid login credentials." },
-        { status: 401 }
+        { status: 401 },
+      );
+    }
+
+    if (!user.isActive) {
+      return NextResponse.json(
+        { message: "Your account is inactive. Please contact the admin." },
+        { status: 403 },
       );
     }
 
@@ -36,7 +45,7 @@ export async function POST(request: Request) {
     if (!isPasswordValid) {
       return NextResponse.json(
         { message: "Invalid login credentials." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -69,7 +78,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { message: "Something went wrong during login." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

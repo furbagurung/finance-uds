@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { DeleteTransactionButton } from "@/components/delete-transaction-button";
 import { notFound, redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AddTransactionAttachment } from "@/components/add-transaction-attachment";
+import { DeleteAttachmentButton } from "@/components/delete-attachment-button";
 import {
   Card,
   CardContent,
@@ -93,9 +96,19 @@ export default async function TransactionDetailPage({
             </p>
           </div>
 
-          <Button asChild variant="outline">
-            <Link href="/transactions">Back to Transactions</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link href="/transactions">Back to Transactions</Link>
+            </Button>
+
+            <Button asChild>
+              <Link href={`/transactions/${transaction.id}/edit`}>
+                Edit Transaction
+              </Link>
+            </Button>
+
+            <DeleteTransactionButton transactionId={transaction.id} />
+          </div>
         </div>
 
         <Card>
@@ -133,7 +146,10 @@ export default async function TransactionDetailPage({
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <DetailItem label="Paid By / Source" value={transaction.paidBy || "-"} />
+              <DetailItem
+                label="Paid By / Source"
+                value={transaction.paidBy || "-"}
+              />
 
               <DetailItem
                 label="Category"
@@ -193,6 +209,9 @@ export default async function TransactionDetailPage({
               </CardHeader>
 
               <CardContent>
+                <div className="mb-4">
+                  <AddTransactionAttachment transactionId={transaction.id} />
+                </div>
                 {transaction.attachments.length === 0 ? (
                   <p className="text-sm text-slate-500">
                     No receipt or invoice attached.
@@ -216,11 +235,18 @@ export default async function TransactionDetailPage({
                           </p>
                         </div>
 
-                        <Button asChild size="sm" variant="outline">
-                          <Link href={attachment.fileUrl} target="_blank">
-                            View File
-                          </Link>
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button asChild size="sm" variant="outline">
+                            <Link href={attachment.fileUrl} target="_blank">
+                              View File
+                            </Link>
+                          </Button>
+
+                          <DeleteAttachmentButton
+                            transactionId={transaction.id}
+                            attachmentId={attachment.id}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>

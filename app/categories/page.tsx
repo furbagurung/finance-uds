@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -40,12 +42,18 @@ export default async function CategoriesPage() {
   return (
     <DashboardShell user={user}>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-950">Categories</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Manage default income and expense categories for United Digital
-            Service.
-          </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-950">Categories</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Manage default and custom finance categories for United Digital
+              Service.
+            </p>
+          </div>
+
+          <Button asChild>
+            <Link href="/categories/new">Add Category</Link>
+          </Button>
         </div>
 
         <Card>

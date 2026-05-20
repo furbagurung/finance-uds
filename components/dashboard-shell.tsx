@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  Activity,
   LayoutDashboard,
   Wallet,
   TrendingUp,
@@ -7,6 +8,7 @@ import {
   Users,
   BriefcaseBusiness,
   BarChart3,
+  DatabaseBackup,
   Settings,
 } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
@@ -55,6 +57,24 @@ const navItems = [
     icon: BarChart3,
   },
   {
+    title: "Activity Logs",
+    href: "/activity",
+    icon: Activity,
+    adminOnly: true,
+  },
+  {
+    title: "Users",
+    href: "/users",
+    icon: Users,
+    adminOnly: true,
+  },
+  {
+    title: "Backup",
+    href: "/backup",
+    icon: DatabaseBackup,
+    adminOnly: true,
+  },
+  {
     title: "Settings",
     href: "/settings",
     icon: Settings,
@@ -89,20 +109,22 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
         <Separator className="my-5" />
 
         <nav className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
+          {navItems
+            .filter((item) => !item.adminOnly || user.role === "ADMIN")
+            .map((item) => {
+              const Icon = item.icon;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
-              >
-                <Icon className="h-4 w-4" />
-                {item.title}
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.title}
+                </Link>
+              );
+            })}
         </nav>
       </aside>
 

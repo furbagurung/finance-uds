@@ -46,17 +46,17 @@ export default async function ClientsPage() {
     <DashboardShell user={user}>
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-  <div>
-    <h1 className="text-3xl font-bold text-slate-950">Clients</h1>
-    <p className="mt-1 text-sm text-slate-500">
-      Manage clients for billing, projects, and client-wise expenses.
-    </p>
-  </div>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-950">Clients</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Manage clients for billing, projects, and client-wise expenses.
+            </p>
+          </div>
 
-  <Button asChild>
-    <Link href="/clients/new">Add Client</Link>
-  </Button>
-</div>
+          <Button asChild>
+            <Link href="/clients/new">Add Client</Link>
+          </Button>
+        </div>
 
         <Card>
           <CardHeader>
@@ -93,7 +93,12 @@ export default async function ClientsPage() {
                   clients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell className="font-medium">
-                        {client.name}
+                        <Link
+                          href={`/clients/${client.id}`}
+                          className="hover:text-orange-600 hover:underline"
+                        >
+                          {client.name}
+                        </Link>
                       </TableCell>
 
                       <TableCell>{client.companyName || "-"}</TableCell>

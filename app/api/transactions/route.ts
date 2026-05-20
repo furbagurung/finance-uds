@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ExpenseScope, PaymentMethod, TransactionType } from "@prisma/client";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
+import { createActivityLog } from "@/lib/activity-log";
 
 export async function GET() {
   try {
@@ -147,6 +148,19 @@ export async function POST(request: Request) {
     attachments: true,
   },
 });
+
+    await createActivityLog({
+      action: "CREATE",
+      entity: "TRANSACTION",
+      entityId: transaction.id,
+      userId: user.id,
+      message: `Created transaction: ${transaction.title}`,
+      metadata: {
+        type: transaction.type,
+        amount: Number(transaction.amount),
+        date: transaction.date,
+      },
+    });
 
     return NextResponse.json(
       {

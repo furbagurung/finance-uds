@@ -6,6 +6,7 @@ import {
 } from "@prisma/client";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
+import { createActivityLog } from "@/lib/activity-log";
 
 type TransactionRouteProps = {
   params: Promise<{
@@ -177,6 +178,19 @@ export async function PATCH(
       },
     });
 
+    await createActivityLog({
+      action: "UPDATE",
+      entity: "TRANSACTION",
+      entityId: transaction.id,
+      userId: user.id,
+      message: `Updated transaction: ${transaction.title}`,
+      metadata: {
+        type: transaction.type,
+        amount: Number(transaction.amount),
+        date: transaction.date,
+      },
+    });
+
     return NextResponse.json({
       message: "Transaction updated successfully.",
       transaction,
@@ -186,6 +200,66 @@ export async function PATCH(
 
     return NextResponse.json(
       { message: "Failed to update transaction." },
+      { status: 500 }
+    );
+  }
+}
+export async function DELETE(
+  _request: Request,
+  { params }: TransactionRouteProps
+) {
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { message: "Not authenticated." },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
+
+    const existingTransaction = await prisma.transaction.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!existingTransaction) {
+      return NextResponse.json(
+        { message: "Transaction not found." },
+        { status: 404 }
+      );
+    }
+
+    await prisma.transaction.delete({
+      where: {
+        id,
+      },
+    });
+
+    await createActivityLog({
+      action: "DELETE",
+      entity: "TRANSACTION",
+      entityId: id,
+      userId: user.id,
+      message: `Deleted transaction: ${existingTransaction.title}`,
+      metadata: {
+        type: existingTransaction.type,
+        amount: Number(existingTransaction.amount),
+        date: existingTransaction.date,
+      },
+    });
+
+    return NextResponse.json({
+      message: "Transaction deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Transaction DELETE error:", error);
+
+    return NextResponse.json(
+      { message: "Failed to delete transaction." },
       { status: 500 }
     );
   }

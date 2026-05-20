@@ -26,6 +26,13 @@ const reports = [
     href: "/reports/project-wise",
     icon: BriefcaseBusiness,
   },
+  {
+    title: "Monthly Report",
+    description:
+      "Review month-wise income, expenses, withdrawals, cash balance, and recoverable client costs.",
+    href: "/reports/monthly",
+    icon: BarChart3,
+  },
 ];
 
 export default async function ReportsPage() {
