@@ -1,12 +1,21 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  FileDown,
+  Landmark,
+  Plus,
+  ReceiptText,
+  WalletCards,
+} from "lucide-react";
+
+import { DashboardShell } from "@/components/dashboard-shell";
+import { TransactionFilters } from "@/components/transaction-filters";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
-import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
-import { TransactionFilters } from "@/components/transaction-filters";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-
 import {
   Card,
   CardContent,
@@ -25,6 +34,44 @@ import {
 
 function formatCurrency(amount: unknown) {
   return `Rs. ${Number(amount).toLocaleString("en-IN")}`;
+}
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat("en-NP", {
+    dateStyle: "medium",
+  }).format(date);
+}
+
+function getTypeBadgeClass(type: string) {
+  if (type === "INCOME") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100/60";
+  }
+
+  if (type === "EXPENSE") {
+    return "border-rose-200 bg-rose-50 text-rose-700 shadow-sm shadow-rose-100/60";
+  }
+
+  if (type === "INVESTMENT") {
+    return "border-slate-800 bg-slate-950 text-white shadow-sm shadow-slate-200/70";
+  }
+
+  return "border-slate-200 bg-slate-100 text-slate-700 shadow-sm shadow-slate-100/70";
+}
+
+function getAmountClass(type: string) {
+  if (type === "INCOME") {
+    return "text-emerald-700";
+  }
+
+  if (type === "EXPENSE") {
+    return "text-rose-700";
+  }
+
+  if (type === "WITHDRAWAL") {
+    return "text-slate-500";
+  }
+
+  return "text-slate-800";
 }
 
 type TransactionsPageProps = {
@@ -46,6 +93,7 @@ export default async function TransactionsPage({
   if (!user) {
     redirect("/login");
   }
+
   const selectedType = params.type && params.type !== "ALL" ? params.type : "";
   const selectedClientId =
     params.clientId && params.clientId !== "ALL" ? params.clientId : "";
@@ -60,13 +108,14 @@ export default async function TransactionsPage({
     ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
     ...(fromDate || toDate
       ? {
-          date: {
-            ...(fromDate ? { gte: new Date(fromDate) } : {}),
-            ...(toDate ? { lte: new Date(toDate) } : {}),
-          },
-        }
+        date: {
+          ...(fromDate ? { gte: new Date(fromDate) } : {}),
+          ...(toDate ? { lte: new Date(toDate) } : {}),
+        },
+      }
       : {}),
   };
+
   const transactions = await prisma.transaction.findMany({
     where: transactionWhere,
     orderBy: {
@@ -108,179 +157,345 @@ export default async function TransactionsPage({
     },
   });
 
+  const filteredIncome = transactions
+    .filter((transaction) => transaction.type === "INCOME")
+    .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
+
+  const filteredExpenses = transactions
+    .filter((transaction) => transaction.type === "EXPENSE")
+    .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
+
+  const filteredNet = filteredIncome - filteredExpenses;
+
+  const receiptCount = transactions.reduce(
+    (sum, transaction) => sum + transaction.attachments.length,
+    0,
+  );
+
+  const exportParams = new URLSearchParams({
+    ...(selectedType ? { type: selectedType } : {}),
+    ...(selectedClientId ? { clientId: selectedClientId } : {}),
+    ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
+    ...(fromDate ? { from: fromDate } : {}),
+    ...(toDate ? { to: toDate } : {}),
+  }).toString();
+
   return (
     <DashboardShell user={user}>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-950">Transactions</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Track investments, income, expenses, withdrawals, and client
-              costs.
+            <h1 className="text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
+              Transactions
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-slate-500">
+              Manage income, expenses, investments, withdrawals, and receipts.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-9 rounded-xl border-slate-200 bg-white px-3 text-slate-700 shadow-sm hover:bg-slate-50"
+            >
               <Link
-                href={`/api/transactions/export?${new URLSearchParams({
-                  ...(selectedType ? { type: selectedType } : {}),
-                  ...(selectedClientId ? { clientId: selectedClientId } : {}),
-                  ...(selectedProjectId
-                    ? { projectId: selectedProjectId }
-                    : {}),
-                  ...(fromDate ? { from: fromDate } : {}),
-                  ...(toDate ? { to: toDate } : {}),
-                }).toString()}`}
+                href={`/api/transactions/export?${exportParams}`}
                 target="_blank"
               >
+                <FileDown className="mr-2 h-4 w-4" />
                 Export CSV
               </Link>
             </Button>
 
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-9 rounded-xl border-emerald-200 bg-white px-3 text-emerald-700 shadow-sm hover:bg-emerald-50 hover:text-emerald-800"
+            >
               <Link href="/transactions/new?type=INCOME">Add Income</Link>
             </Button>
 
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-9 rounded-xl border-rose-200 bg-white px-3 text-rose-700 shadow-sm hover:bg-rose-50 hover:text-rose-800"
+            >
               <Link href="/transactions/new?type=EXPENSE">Add Expense</Link>
             </Button>
 
-            <Button asChild>
-              <Link href="/transactions/new">Add Transaction</Link>
+            <Button
+              asChild
+              size="sm"
+              className="h-9 rounded-xl bg-slate-950 px-3 text-white shadow-sm hover:bg-slate-800"
+            >
+              <Link href="/transactions/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Transaction
+              </Link>
             </Button>
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
-            <CardDescription>
-              Filter transactions by type, client, project, and date range.
-            </CardDescription>
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="grid divide-y divide-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5">
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
+                <WalletCards className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Records
+                </p>
+                <p className="mt-0.5 text-lg font-bold text-slate-950">
+                  {transactions.length}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <ArrowUpRight className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Income
+                </p>
+                <p className="mt-0.5 text-lg font-bold text-emerald-700">
+                  {formatCurrency(filteredIncome)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+                <ArrowDownLeft className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Expenses
+                </p>
+                <p className="mt-0.5 text-lg font-bold text-rose-700">
+                  {formatCurrency(filteredExpenses)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
+                <Landmark className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Net View
+                </p>
+                <p className="mt-0.5 text-lg font-bold text-slate-950">
+                  {formatCurrency(filteredNet)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-3.5 sm:col-span-2 xl:col-span-1">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                <ReceiptText className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Receipts
+                </p>
+                <p className="mt-0.5 text-lg font-bold text-amber-700">
+                  {receiptCount}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <TransactionFilters
+          clients={clients}
+          projects={projects}
+          selectedType={selectedType}
+          selectedClientId={selectedClientId}
+          selectedProjectId={selectedProjectId}
+          fromDate={fromDate}
+          toDate={toDate}
+        />
+
+        <Card className="overflow-hidden rounded-3xl border-slate-200 bg-white shadow-sm ring-1 ring-slate-100/70">
+          <CardHeader className="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <CardTitle className="text-lg font-semibold tracking-tight text-slate-950">
+                Transaction Journal
+              </CardTitle>
+              <CardDescription className="mt-1 text-sm text-slate-500">
+                Date, source, client, project, amount, and receipt status.
+              </CardDescription>
+            </div>
+
+            <div className="w-fit rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Net in current view
+              </p>
+              <p className="mt-0.5 text-base font-bold text-slate-950">
+                {formatCurrency(filteredNet)}
+              </p>
+            </div>
           </CardHeader>
 
-          <CardContent>
-            <TransactionFilters
-              clients={clients}
-              projects={projects}
-              selectedType={selectedType}
-              selectedClientId={selectedClientId}
-              selectedProjectId={selectedProjectId}
-              fromDate={fromDate}
-              toDate={toDate}
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-            <CardDescription>
-              This follows your spreadsheet flow: date, paid by, done for,
-              amount, and receipt/invoice.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Paid By</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Done For</TableHead>
-                  <TableHead>Scope</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Receipt</TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {transactions.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="py-10 text-center text-sm text-slate-500"
-                    >
-                      No transactions added yet.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  transactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell>
-                        {new Intl.DateTimeFormat("en-NP", {
-                          dateStyle: "medium",
-                        }).format(transaction.date)}
-                      </TableCell>
-
-                      <TableCell>
-                        <Badge
-                          variant={
-                            transaction.type === "INCOME" ||
-                            transaction.type === "INVESTMENT"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {transaction.type}
-                        </Badge>
-                      </TableCell>
-
-                      <TableCell>{transaction.paidBy || "-"}</TableCell>
-
-                      <TableCell>{transaction.client?.name || "-"}</TableCell>
-
-                      <TableCell>{transaction.project?.name || "-"}</TableCell>
-
-                      <TableCell>
-                        <Link
-                          href={`/transactions/${transaction.id}`}
-                          className="font-medium text-slate-950 hover:text-orange-600 hover:underline"
-                        >
-                          {transaction.doneFor || transaction.title}
-                        </Link>
-                        {transaction.category ? (
-                          <div className="text-xs text-slate-500">
-                            {transaction.category.name}
-                          </div>
-                        ) : null}
-                      </TableCell>
-
-                      <TableCell>{transaction.expenseScope || "-"}</TableCell>
-
-                      <TableCell className="font-semibold">
-                        {formatCurrency(transaction.amount)}
-                      </TableCell>
-
-                      <TableCell>
-                        {transaction.attachments.length > 0 ? (
-                          <div className="space-y-1">
-                            {transaction.attachments.map((attachment) => (
-                              <Link
-                                key={attachment.id}
-                                href={attachment.fileUrl}
-                                target="_blank"
-                                className="block text-sm font-medium text-orange-600 hover:underline"
-                              >
-                                View File
-                              </Link>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-slate-400">
-                            No file
-                          </span>
-                        )}
-                      </TableCell>
+          <CardContent className="p-0">
+            {transactions.length === 0 ? (
+              <div className="m-5 flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 text-center">
+                <p className="text-base font-semibold text-slate-800">
+                  No transactions yet
+                </p>
+                <p className="mt-1 max-w-sm text-sm text-slate-500">
+                  Add your first income, expense, investment, or withdrawal to
+                  start tracking finance activity.
+                </p>
+                <Link
+                  href="/transactions/new"
+                  className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+                >
+                  Add Transaction
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50 hover:bg-slate-50">
+                      <TableHead className="h-12 rounded-tl-2xl text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Date
+                      </TableHead>
+                      <TableHead className="h-12 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Type
+                      </TableHead>
+                      <TableHead className="h-12 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Paid By
+                      </TableHead>
+                      <TableHead className="h-12 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Client
+                      </TableHead>
+                      <TableHead className="h-12 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Project
+                      </TableHead>
+                      <TableHead className="h-12 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Done For
+                      </TableHead>
+                      <TableHead className="h-12 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Scope
+                      </TableHead>
+                      <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Amount
+                      </TableHead>
+                      <TableHead className="h-12 rounded-tr-2xl text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Receipt
+                      </TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+
+                  <TableBody>
+                    {transactions.map((transaction) => (
+                      <TableRow
+                        key={transaction.id}
+                        className="border-slate-100 hover:bg-slate-50/80"
+                      >
+                        <TableCell className="whitespace-nowrap py-5 text-sm font-medium text-slate-600">
+                          {formatDate(transaction.date)}
+                        </TableCell>
+
+                        <TableCell className="py-5">
+                          <Badge
+                            variant="outline"
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide ${getTypeBadgeClass(
+                              transaction.type,
+                            )}`}
+                          >
+                            {transaction.type}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="max-w-[180px] truncate py-5 text-sm text-slate-600">
+                          {transaction.paidBy || "-"}
+                        </TableCell>
+
+                        <TableCell className="max-w-[180px] truncate py-5 text-sm text-slate-600">
+                          {transaction.client?.name || "-"}
+                        </TableCell>
+
+                        <TableCell className="max-w-[180px] truncate py-5 text-sm text-slate-600">
+                          {transaction.project?.name || "-"}
+                        </TableCell>
+
+                        <TableCell className="min-w-[220px] py-5">
+                          <Link
+                            href={`/transactions/${transaction.id}`}
+                            className="font-medium text-slate-950 hover:text-orange-600 hover:underline"
+                          >
+                            {transaction.doneFor || transaction.title}
+                          </Link>
+
+                          {transaction.category ? (
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              {transaction.category.name}
+                            </p>
+                          ) : null}
+                        </TableCell>
+
+                        <TableCell className="py-5">
+                          {transaction.expenseScope ? (
+                            <Badge
+                              variant="secondary"
+                              className="rounded-full bg-slate-100 text-slate-700"
+                            >
+                              {transaction.expenseScope}
+                            </Badge>
+                          ) : (
+                            <span className="text-sm text-slate-400">-</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell
+                          className={`py-5 text-right font-bold ${getAmountClass(
+                            transaction.type,
+                          )}`}
+                        >
+                          {formatCurrency(transaction.amount)}
+                        </TableCell>
+
+                        <TableCell className="py-5 text-right">
+                          {transaction.attachments.length > 0 ? (
+                            <div className="flex justify-end gap-2">
+                              {transaction.attachments
+                                .slice(0, 2)
+                                .map((attachment) => (
+                                  <Link
+                                    key={attachment.id}
+                                    href={attachment.fileUrl}
+                                    target="_blank"
+                                    className="inline-flex h-7 items-center rounded-full border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+                                  >
+                                    View file
+                                  </Link>
+                                ))}
+
+                              {transaction.attachments.length > 2 ? (
+                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                                  +{transaction.attachments.length - 2}
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <span className="text-xs font-medium text-slate-400">
+                              No file
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

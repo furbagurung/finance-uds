@@ -215,19 +215,13 @@ export default async function DashboardPage() {
   return (
     <DashboardShell user={user}>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-              Finance Overview
-            </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
-              Welcome back, {user.name}
-            </h1>
-            <p className="mt-1 max-w-2xl text-sm text-slate-500">
-              Monitor income, expenses, recoverable client costs, and cash flow
-              from one internal finance workspace.
-            </p>
-          </div>
+        <div className="flex flex-col gap-4  p-5 lg:flex-row lg:items-center lg:justify-between">
+
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+            Welcome back, {user.name}
+          </h1>
+
+
 
           <div className="flex flex-wrap gap-2">
             <Link
