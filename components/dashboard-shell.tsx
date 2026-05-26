@@ -109,7 +109,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
             <p className="text-sm font-bold tracking-tight text-slate-950">
               United Digital
             </p>
-            <p className="text-xs font-medium text-slate-500">
+            <p className="text-xs font-medium text-slate-500 whitespace-nowrap">
               Finance Tracker
             </p>
           </div>
