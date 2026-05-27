@@ -35,9 +35,31 @@ type ClientFormInitialData = {
 
 type ClientFormProps = {
   initialData?: ClientFormInitialData;
-};
 
-export function ClientForm({ initialData }: ClientFormProps) {
+  /**
+   * page  = normal full page form
+   * modal = form used inside popup modal
+   */
+  mode?: "page" | "modal";
+
+  /**
+   * Runs after successful client creation/update.
+   * Useful for closing modal from parent component.
+   */
+  onSuccess?: () => void;
+
+  /**
+   * Runs when cancel is clicked.
+   * Useful for closing modal instead of redirecting.
+   */
+  onCancel?: () => void;
+};
+export function ClientForm({
+  initialData,
+  mode = "page",
+  onSuccess,
+  onCancel,
+}: ClientFormProps) {
   const router = useRouter();
 
   const [name, setName] = useState(initialData?.name || "");
@@ -129,6 +151,12 @@ export function ClientForm({ initialData }: ClientFormProps) {
 
       if (!response.ok) {
         setError(data.message || `Failed to ${isEditing ? "update" : "create"} client.`);
+        return;
+      }
+
+      if (mode === "modal") {
+        router.refresh();
+        onSuccess?.();
         return;
       }
 
@@ -304,10 +332,20 @@ export function ClientForm({ initialData }: ClientFormProps) {
           ) : null}
 
           <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
-            <Button type="button" variant="outline" onClick={() => router.push("/clients")}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (mode === "modal") {
+                  onCancel?.();
+                  return;
+                }
+
+                router.push("/clients");
+              }}
+            >
               Cancel
             </Button>
-
             <Button type="submit" disabled={loading}>
               {loading ? "Saving..." : isEditing ? "Update Client" : "Save Client"}
             </Button>

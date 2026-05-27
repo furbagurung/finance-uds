@@ -29,8 +29,30 @@ const transactionTypes: TransactionType[] = [
   "EXPENSE",
   "WITHDRAWAL",
 ];
+type CategoryFormProps = {
+  /**
+   * page  = normal full page form
+   * modal = form used inside popup modal
+   */
+  mode?: "page" | "modal";
 
-export function CategoryForm() {
+  /**
+   * Runs after successful category creation.
+   * Useful for closing modal from parent component.
+   */
+  onSuccess?: () => void;
+
+  /**
+   * Runs when cancel is clicked.
+   * Useful for closing modal instead of redirecting.
+   */
+  onCancel?: () => void;
+};
+export function CategoryForm({
+  mode = "page",
+  onSuccess,
+  onCancel,
+}: CategoryFormProps) {
   const router = useRouter();
 
   const [name, setName] = useState("");
@@ -62,6 +84,12 @@ export function CategoryForm() {
 
       if (!response.ok) {
         setError(data.message || "Failed to create category.");
+        return;
+      }
+
+      if (mode === "modal") {
+        router.refresh();
+        onSuccess?.();
         return;
       }
 
@@ -133,7 +161,14 @@ export function CategoryForm() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push("/categories")}
+              onClick={() => {
+                if (mode === "modal") {
+                  onCancel?.();
+                  return;
+                }
+
+                router.push("/categories");
+              }}
             >
               Cancel
             </Button>

@@ -6,6 +6,8 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { DashboardCashflowChart } from "@/components/dashboard-cashflow-chart";
 import { Badge } from "@/components/ui/badge";
 import { DashboardExpenseDonutChart } from "@/components/dashboard-expense-donut-chart";
+import { ClientCreateModal } from "@/components/client-create-modal";
+import { TransactionCreateModal } from "@/components/transaction-create-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowDownLeft,
@@ -222,26 +224,27 @@ export default async function DashboardPage() {
           </h1>
 
 
-
+          {/* DASHBOARD QUICK ACTIONS
+    Transaction actions open premium modals.
+    Client action will be converted to modal in the next step after checking client-form.tsx.
+*/}
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/transactions/new?type=INCOME"
-              className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
-            >
-              Add Income
-            </Link>
-            <Link
-              href="/transactions/new?type=EXPENSE"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              Add Expense
-            </Link>
-            <Link
-              href="/clients/new"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              Add Client
-            </Link>
+            <TransactionCreateModal
+              defaultType="INCOME"
+              triggerLabel="Add Income"
+              triggerClassName="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+            />
+
+            <TransactionCreateModal
+              defaultType="EXPENSE"
+              triggerLabel="Add Expense"
+              triggerClassName="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            />
+
+            <ClientCreateModal
+              triggerLabel="Add Client"
+              triggerClassName="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            />
           </div>
         </div>
 
@@ -362,12 +365,10 @@ export default async function DashboardPage() {
                   <p className="mt-1 max-w-sm text-sm text-slate-500">
                     Add income or expense transactions to generate your monthly cash flow chart.
                   </p>
-                  <Link
-                    href="/transactions/new"
-                    className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
-                  >
-                    Add Transaction
-                  </Link>
+                  <TransactionCreateModal
+                    triggerLabel="Add Transaction"
+                    triggerClassName="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+                  />
                 </div>
               )}
             </CardContent>
@@ -454,12 +455,10 @@ export default async function DashboardPage() {
                   <p className="mt-1 max-w-sm text-sm text-slate-500">
                     Start by adding income, expenses, investments, or withdrawals.
                   </p>
-                  <Link
-                    href="/transactions/new"
-                    className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
-                  >
-                    Add Transaction
-                  </Link>
+                  <TransactionCreateModal
+                    triggerLabel="Add Transaction"
+                    triggerClassName="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+                  />
                 </div>
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-slate-100">

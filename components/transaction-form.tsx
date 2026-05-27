@@ -69,23 +69,46 @@ const paymentMethods: PaymentMethod[] = [
 
 type TransactionFormProps = {
   defaultType?: string;
+
+  /**
+   * page  = normal full page form
+   * modal = form used inside popup modal
+   */
+  mode?: "page" | "modal";
+
+  /**
+   * Runs after successful transaction creation.
+   * Useful for closing modal from parent component.
+   */
+  onSuccess?: () => void;
+
+  /**
+   * Runs when cancel is clicked.
+   * Useful for closing modal instead of redirecting.
+   */
+  onCancel?: () => void;
 };
 
-export function TransactionForm({ defaultType }: TransactionFormProps) {
+export function TransactionForm({
+  defaultType,
+  mode = "page",
+  onSuccess,
+  onCancel,
+}: TransactionFormProps) {
   const router = useRouter();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const initialType: TransactionType =
-  defaultType === "INVESTMENT" ||
-  defaultType === "INCOME" ||
-  defaultType === "EXPENSE" ||
-  defaultType === "WITHDRAWAL"
-    ? defaultType
-    : "EXPENSE";
+    defaultType === "INVESTMENT" ||
+      defaultType === "INCOME" ||
+      defaultType === "EXPENSE" ||
+      defaultType === "WITHDRAWAL"
+      ? defaultType
+      : "EXPENSE";
 
-const [type, setType] = useState<TransactionType>(initialType);
+  const [type, setType] = useState<TransactionType>(initialType);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] =
@@ -147,22 +170,22 @@ const [type, setType] = useState<TransactionType>(initialType);
   }, []);
 
 
-function handleTypeChange(value: string) {
-  const nextType = value as TransactionType;
+  function handleTypeChange(value: string) {
+    const nextType = value as TransactionType;
 
-  setType(nextType);
-  setCategoryId("");
+    setType(nextType);
+    setCategoryId("");
 
-  if (nextType !== "EXPENSE") {
-    setIsBillable(false);
-    setIsReimbursed(false);
+    if (nextType !== "EXPENSE") {
+      setIsBillable(false);
+      setIsReimbursed(false);
+    }
   }
-}
 
-function handleClientChange(value: string) {
-  setClientId(value);
-  setProjectId("");
-}
+  function handleClientChange(value: string) {
+    setClientId(value);
+    setProjectId("");
+  }
   async function uploadReceipt() {
     if (!file) return null;
 
@@ -221,6 +244,11 @@ function handleClientChange(value: string) {
         setError(data.message || "Failed to create transaction.");
         return;
       }
+      if (mode === "modal") {
+        router.refresh();
+        onSuccess?.();
+        return;
+      }
 
       router.push("/transactions");
       router.refresh();
@@ -246,7 +274,7 @@ function handleClientChange(value: string) {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Transaction Type</Label>
-            <Select value={type} onValueChange={handleTypeChange}>
+              <Select value={type} onValueChange={handleTypeChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
@@ -345,7 +373,7 @@ function handleClientChange(value: string) {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Client</Label>
-             <Select value={clientId} onValueChange={handleClientChange}>
+              <Select value={clientId} onValueChange={handleClientChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select client" />
                 </SelectTrigger>
@@ -456,7 +484,14 @@ function handleClientChange(value: string) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push("/transactions")}
+              onClick={() => {
+                if (mode === "modal") {
+                  onCancel?.();
+                  return;
+                }
+
+                router.push("/transactions");
+              }}
             >
               Cancel
             </Button>

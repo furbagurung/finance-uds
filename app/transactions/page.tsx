@@ -12,10 +12,12 @@ import {
 
 import { DashboardShell } from "@/components/dashboard-shell";
 import { TransactionFilters } from "@/components/transaction-filters";
+import { TransactionCreateModal } from "@/components/transaction-create-modal";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
 import {
   Table,
   TableBody,
@@ -187,50 +189,27 @@ export default async function TransactionsPage({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="h-9 rounded-xl border-slate-200 bg-white px-3 text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950"
-            >
-              <Link
-                href={`/api/transactions/export?${exportParams}`}
-                target="_blank"
-              >
-                <FileDown className="mr-2 h-4 w-4" />
-                Export CSV
-              </Link>
-            </Button>
+          {/* TRANSACTION QUICK ACTIONS
+    These actions now open premium modals instead of navigating to /transactions/new.
+    The old /transactions/new page still exists as fallback.
+*/}
+          <div className="flex flex-wrap items-center gap-2">
+            <TransactionCreateModal
+              defaultType="INCOME"
+              triggerLabel="Add Income"
+              triggerClassName="rounded-xl bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+            />
 
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="h-9 rounded-xl border-emerald-200 bg-emerald-50 px-3 text-emerald-700 shadow-sm hover:bg-emerald-100 hover:text-emerald-800"
-            >
-              <Link href="/transactions/new?type=INCOME">Add Income</Link>
-            </Button>
+            <TransactionCreateModal
+              defaultType="EXPENSE"
+              triggerLabel="Add Expense"
+              triggerClassName="rounded-xl bg-slate-950 text-white shadow-sm hover:bg-slate-800"
+            />
 
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="h-9 rounded-xl border-rose-200 bg-rose-50 px-3 text-rose-700 shadow-sm hover:bg-rose-100 hover:text-rose-800"
-            >
-              <Link href="/transactions/new?type=EXPENSE">Add Expense</Link>
-            </Button>
-
-            <Button
-              asChild
-              size="sm"
-              className="h-9 rounded-xl bg-slate-950 px-3 text-white shadow-sm hover:bg-slate-800"
-            >
-              <Link href="/transactions/new">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Transaction
-              </Link>
-            </Button>
+            <TransactionCreateModal
+              triggerLabel="Add Transaction"
+              triggerClassName="rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+            />
           </div>
         </div>
 
@@ -352,12 +331,10 @@ export default async function TransactionsPage({
                   Add your first income, expense, investment, or withdrawal to
                   start tracking finance activity.
                 </p>
-                <Link
-                  href="/transactions/new"
-                  className="mt-5 inline-flex h-10 items-center rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-                >
-                  Add Transaction
-                </Link>
+                <TransactionCreateModal
+                  triggerLabel="Add Transaction"
+                  triggerClassName="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+                />
               </div>
             ) : (
               <div className="overflow-x-auto">

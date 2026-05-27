@@ -3,8 +3,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { CategoryCreateModal } from "@/components/category-create-modal";
 import {
   Card,
   CardContent,
@@ -51,9 +50,14 @@ export default async function CategoriesPage() {
             </p>
           </div>
 
-          <Button asChild>
-            <Link href="/categories/new">Add Category</Link>
-          </Button>
+          {/* CATEGORY QUICK ACTION
+    Add Category now opens a premium modal.
+    The old /categories/new page still exists as fallback.
+*/}
+          <CategoryCreateModal
+            triggerLabel="Add Category"
+            triggerClassName="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+          />
         </div>
 
         <Card>

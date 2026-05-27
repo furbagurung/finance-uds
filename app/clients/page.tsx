@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { ClientCreateModal } from "@/components/client-create-modal";
 import {
   Card,
   CardContent,
@@ -53,9 +53,14 @@ export default async function ClientsPage() {
             </p>
           </div>
 
-          <Button asChild>
-            <Link href="/clients/new">Add Client</Link>
-          </Button>
+          {/* CLIENT QUICK ACTION
+    Add Client now opens a premium modal.
+    The old /clients/new page still exists as fallback.
+*/}
+          <ClientCreateModal
+            triggerLabel="Add Client"
+            triggerClassName="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+          />
         </div>
 
         <Card>
