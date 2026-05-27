@@ -135,16 +135,21 @@ function SidebarNavItem({
         href={href}
         title={expanded ? undefined : title}
         className={cn(
-          "relative grid h-11 items-center rounded-2xl text-sm font-medium transition-all duration-300 ease-in-out",
+          "relative grid h-11 items-center rounded-lg text-sm font-medium transition-all duration-300 ease-in-out",
           expanded
             ? "w-full grid-cols-[2rem_1fr] gap-3 px-3.5"
-            : "ml-[10px] h-11 w-11 grid-cols-[2rem_0fr] px-1.5",
+            : "ml-[10px] h-11 w-11 grid-cols-[2rem_0fr] rounded-lg px-1.5",
           isActive
             ? "bg-slate-950 text-white shadow-sm shadow-slate-200"
-            : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-950 hover:shadow-sm",
+            : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-950",
         )}
       >
-        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
+        <span
+          className={cn(
+            "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition-all duration-200 ease-in-out",
+            isActive ? "bg-white/10" : "group-hover:bg-slate-50",
+          )}
+        >
           <Icon
             className={cn(
               "h-4 w-4 flex-shrink-0 transition-all duration-200 ease-in-out",
@@ -183,7 +188,8 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const isMacShortcut = event.metaKey && event.key.toLowerCase() === "k";
-      const isWindowsShortcut = event.ctrlKey && event.key.toLowerCase() === "k";
+      const isWindowsShortcut =
+  event.ctrlKey && event.key.toLowerCase() === "k";
 
       if (isMacShortcut || isWindowsShortcut) {
         event.preventDefault();
@@ -262,7 +268,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
             <nav
               className={cn(
                 "space-y-1.5 overflow-visible transition-all duration-300 ease-in-out",
-                expanded ? "" : "flex flex-col items-start"
+                expanded ? "" : "flex flex-col items-start",
               )}
             >
               {navItems
@@ -340,123 +346,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
             </div>
           </div>
         </header>
-        {commandOpen ? (
-          <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/20 px-4 pt-24 backdrop-blur-sm">
-            <div className="absolute inset-0" onClick={() => setCommandOpen(false)} />
 
-            <div className="relative w-full max-w-xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-              <div className="flex h-12 items-center gap-3 border-b border-slate-100 px-4">
-                <Search className="h-4 w-4 text-slate-400" />
-
-                <input
-                  autoFocus
-                  type="text"
-                  placeholder="Search actions and pages"
-                  className="h-full flex-1 bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setCommandOpen(false)}
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                >
-                  ESC
-                </button>
-              </div>
-
-              <div className="max-h-[520px] overflow-y-auto p-2">
-                <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Navigate
-                </p>
-
-                <div className="space-y-1">
-                  <Link
-                    href="/dashboard"
-                    onClick={() => setCommandOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-950"
-                  >
-                    <span className="flex items-center gap-3">
-                      <LayoutDashboard className="h-4 w-4 text-slate-500" />
-                      Go to Dashboard
-                    </span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-300" />
-                  </Link>
-
-                  <Link
-                    href="/transactions"
-                    onClick={() => setCommandOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-950"
-                  >
-                    <span className="flex items-center gap-3">
-                      <ReceiptText className="h-4 w-4 text-slate-500" />
-                      Go to Transactions
-                    </span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-300" />
-                  </Link>
-
-                  <Link
-                    href="/clients"
-                    onClick={() => setCommandOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-950"
-                  >
-                    <span className="flex items-center gap-3">
-                      <Users className="h-4 w-4 text-slate-500" />
-                      Go to Clients
-                    </span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-300" />
-                  </Link>
-
-                  <Link
-                    href="/reports"
-                    onClick={() => setCommandOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-950"
-                  >
-                    <span className="flex items-center gap-3">
-                      <BarChart3 className="h-4 w-4 text-slate-500" />
-                      Go to Reports
-                    </span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-300" />
-                  </Link>
-                </div>
-
-                <p className="mt-4 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Actions
-                </p>
-
-                <div className="space-y-1">
-                  <Link
-                    href="/transactions"
-                    onClick={() => setCommandOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-950"
-                  >
-                    <span className="flex items-center gap-3">
-                      <Plus className="h-4 w-4 text-slate-500" />
-                      Add Transaction
-                    </span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-300" />
-                  </Link>
-
-                  <Link
-                    href="/clients"
-                    onClick={() => setCommandOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-950"
-                  >
-                    <span className="flex items-center gap-3">
-                      <UserPlus className="h-4 w-4 text-slate-500" />
-                      Add Client
-                    </span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-300" />
-                  </Link>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-4 py-2 text-[11px] font-medium text-slate-400">
-                <span>Quick command menu</span>
-                <span>ESC to close</span>
-              </div>
-            </div>
-          </div>
-        ) : null}
         {commandOpen ? (
           <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/20 px-4 pt-24 backdrop-blur-sm">
             <div
@@ -464,8 +354,8 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
               onClick={() => setCommandOpen(false)}
             />
 
-            <div className="relative w-full max-w-xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-              <div className="flex h-12 items-center gap-3 border-b border-slate-100 px-4">
+            <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-300/30">
+              <div className="flex h-12 items-center gap-3 border-b border-slate-100 bg-slate-50/60 px-4">
                 <Search className="h-4 w-4 text-slate-500" />
                 <input
                   autoFocus
@@ -491,7 +381,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                   <Link
                     href="/dashboard"
                     onClick={() => setCommandOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-[#eef5ef] hover:text-slate-950"
+                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-950"
                   >
                     <span className="flex items-center gap-3">
                       <LayoutDashboard className="h-4 w-4 text-slate-500" />
@@ -503,7 +393,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                   <Link
                     href="/transactions"
                     onClick={() => setCommandOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-[#eef5ef] hover:text-slate-950"
+                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-950"
                   >
                     <span className="flex items-center gap-3">
                       <ReceiptText className="h-4 w-4 text-slate-500" />
@@ -515,7 +405,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                   <Link
                     href="/clients"
                     onClick={() => setCommandOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-[#eef5ef] hover:text-slate-950"
+                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-950"
                   >
                     <span className="flex items-center gap-3">
                       <Users className="h-4 w-4 text-slate-500" />
@@ -527,7 +417,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                   <Link
                     href="/reports"
                     onClick={() => setCommandOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-[#eef5ef] hover:text-slate-950"
+                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-950"
                   >
                     <span className="flex items-center gap-3">
                       <BarChart3 className="h-4 w-4 text-slate-500" />
@@ -545,7 +435,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                   <Link
                     href="/transactions"
                     onClick={() => setCommandOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-[#eef5ef] hover:text-slate-950"
+                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-950"
                   >
                     <span className="flex items-center gap-3">
                       <Plus className="h-4 w-4 text-slate-500" />
@@ -557,7 +447,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                   <Link
                     href="/clients"
                     onClick={() => setCommandOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-[#eef5ef] hover:text-slate-950"
+                    className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-950"
                   >
                     <span className="flex items-center gap-3">
                       <UserPlus className="h-4 w-4 text-slate-500" />
