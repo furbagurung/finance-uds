@@ -465,7 +465,11 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
             </div>
           </div>
         ) : null}
-        <main className="p-6">{children}</main>
+        <main className="p-6">
+          <div className="mx-auto w-full max-w-[1220px] space-y-7">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );

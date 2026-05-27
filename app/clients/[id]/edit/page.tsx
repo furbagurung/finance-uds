@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
+import { ClientForm } from "@/components/client-form";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { EditClientForm } from "@/components/edit-client-form";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 
@@ -29,15 +29,22 @@ export default async function EditClientPage({ params }: EditClientPageProps) {
 
   return (
     <DashboardShell user={user}>
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-950">Edit Client</h1>
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+            Client CRM
+          </p>
+
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
+            Edit Client
+          </h1>
+
           <p className="mt-1 text-sm text-slate-500">
-            Update client profile and contact details.
+            Update client identity, contact details, digital presence, and internal notes.
           </p>
         </div>
 
-        <EditClientForm client={client} />
+        <ClientForm initialData={client} />
       </div>
     </DashboardShell>
   );

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
+  Archive,
   FileDown,
-  Landmark,
   Plus,
   ReceiptText,
+  TrendingDown,
+  TrendingUp,
   WalletCards,
 } from "lucide-react";
 
@@ -16,13 +16,6 @@ import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -182,14 +175,15 @@ export default async function TransactionsPage({
 
   return (
     <DashboardShell user={user}>
-      <div className="space-y-6">
+      <div className="mx-auto w-full max-w-[1220px] space-y-7">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
               Transactions
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-slate-500">
-              Manage income, expenses, investments, withdrawals, and receipts.
+              Manage, track, and review income, expenses, investments, and
+              withdrawals.
             </p>
           </div>
 
@@ -198,7 +192,7 @@ export default async function TransactionsPage({
               asChild
               variant="outline"
               size="sm"
-              className="h-9 rounded-xl border-slate-200 bg-white px-3 text-slate-700 shadow-sm hover:bg-slate-50"
+              className="h-9 rounded-xl border-slate-200 bg-white px-3 text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950"
             >
               <Link
                 href={`/api/transactions/export?${exportParams}`}
@@ -213,7 +207,7 @@ export default async function TransactionsPage({
               asChild
               variant="outline"
               size="sm"
-              className="h-9 rounded-xl border-emerald-200 bg-white px-3 text-emerald-700 shadow-sm hover:bg-emerald-50 hover:text-emerald-800"
+              className="h-9 rounded-xl border-emerald-200 bg-emerald-50 px-3 text-emerald-700 shadow-sm hover:bg-emerald-100 hover:text-emerald-800"
             >
               <Link href="/transactions/new?type=INCOME">Add Income</Link>
             </Button>
@@ -222,7 +216,7 @@ export default async function TransactionsPage({
               asChild
               variant="outline"
               size="sm"
-              className="h-9 rounded-xl border-rose-200 bg-white px-3 text-rose-700 shadow-sm hover:bg-rose-50 hover:text-rose-800"
+              className="h-9 rounded-xl border-rose-200 bg-rose-50 px-3 text-rose-700 shadow-sm hover:bg-rose-100 hover:text-rose-800"
             >
               <Link href="/transactions/new?type=EXPENSE">Add Expense</Link>
             </Button>
@@ -240,81 +234,127 @@ export default async function TransactionsPage({
           </div>
         </div>
 
-      
-
-        <TransactionFilters
-          clients={clients}
-          projects={projects}
-          selectedType={selectedType}
-          selectedClientId={selectedClientId}
-          selectedProjectId={selectedProjectId}
-          fromDate={fromDate}
-          toDate={toDate}
-        />
-
-        <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/40 px-5 py-3.5">
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Records
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Total Records
                 </p>
-                <p className="mt-0.5 text-base font-bold text-slate-950">
+                <p className="mt-5 text-2xl font-bold text-slate-950">
                   {transactions.length}
                 </p>
-              </div>
-
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Income
+                <p className="mt-1 text-[11px] font-medium text-slate-400">
+                  Current filtered view
                 </p>
-                <p className="mt-0.5 text-base font-bold text-emerald-700">
+              </div>
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                <Archive className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Total Income
+                </p>
+                <p className="mt-5 text-2xl font-bold text-slate-950">
                   {formatCurrency(filteredIncome)}
                 </p>
-              </div>
-
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Expenses
+                <p className="mt-1 text-[11px] font-medium text-slate-400">
+                  Income in view
                 </p>
-                <p className="mt-0.5 text-base font-bold text-rose-700">
+              </div>
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <TrendingUp className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Total Expenses
+                </p>
+                <p className="mt-5 text-2xl font-bold text-slate-950">
                   {formatCurrency(filteredExpenses)}
                 </p>
+                <p className="mt-1 text-[11px] font-medium text-slate-400">
+                  Expenses in view
+                </p>
               </div>
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+                <TrendingDown className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
 
+          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Net View
                 </p>
-                <p className="mt-0.5 text-base font-bold text-slate-950">
+                <p className="mt-5 text-2xl font-bold text-slate-950">
                   {formatCurrency(filteredNet)}
                 </p>
-              </div>
-
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Receipts
+                <p className="mt-1 text-[11px] font-medium text-slate-400">
+                  Income minus expenses
                 </p>
-                <p className="mt-0.5 text-base font-bold text-amber-700">
+              </div>
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                <WalletCards className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Receipts Attached
+                </p>
+                <p className="mt-5 text-2xl font-bold text-slate-950">
                   {receiptCount}
                 </p>
+                <p className="mt-1 text-[11px] font-medium text-slate-400">
+                  Uploaded files
+                </p>
               </div>
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                <ReceiptText className="h-4 w-4" />
+              </span>
             </div>
-          </CardHeader>
+          </div>
+        </div>
 
-          <CardContent className="p-0">
+        <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <TransactionFilters
+            clients={clients}
+            projects={projects}
+            selectedType={selectedType}
+            selectedClientId={selectedClientId}
+            selectedProjectId={selectedProjectId}
+            fromDate={fromDate}
+            toDate={toDate}
+          />
+
+          <div>
             {transactions.length === 0 ? (
-              <div className="m-5 flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 text-center">
-                <p className="text-base font-semibold text-slate-800">
+              <div className="flex min-h-[360px] flex-col items-center justify-center border-b border-slate-100 bg-slate-50/25 px-6 py-16 text-center">
+                <p className="text-base font-semibold text-slate-950">
                   No transactions yet
                 </p>
-                <p className="mt-1 max-w-sm text-sm text-slate-500">
+                <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
                   Add your first income, expense, investment, or withdrawal to
                   start tracking finance activity.
                 </p>
                 <Link
                   href="/transactions/new"
-                  className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+                  className="mt-5 inline-flex h-10 items-center rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
                 >
                   Add Transaction
                 </Link>
@@ -345,7 +385,7 @@ export default async function TransactionsPage({
                       <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Scope
                       </TableHead>
-                      <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <TableHead className="h-11 text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Amount
                       </TableHead>
                       <TableHead className="h-11 text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
@@ -390,7 +430,7 @@ export default async function TransactionsPage({
                         <TableCell className="min-w-[220px] py-5">
                           <Link
                             href={`/transactions/${transaction.id}`}
-                            className="font-medium text-slate-950 hover:text-orange-600 hover:underline"
+                            className="font-medium text-slate-950 hover:text-slate-700 hover:underline"
                           >
                             {transaction.doneFor || transaction.title}
                           </Link>
@@ -433,7 +473,7 @@ export default async function TransactionsPage({
                                     key={attachment.id}
                                     href={attachment.fileUrl}
                                     target="_blank"
-                                    className="inline-flex h-7 items-center rounded-full border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+                                    className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
                                   >
                                     View file
                                   </Link>
@@ -457,8 +497,21 @@ export default async function TransactionsPage({
                 </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
+
+            <div className="flex flex-col gap-2 border-t border-slate-100 bg-white px-5 py-4 text-xs font-medium text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                Showing {transactions.length} records of {transactions.length} total
+                transactions
+              </span>
+              <span className="inline-flex items-center gap-2 text-slate-950">
+                Net in view:
+                <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 font-bold">
+                  {formatCurrency(filteredNet)}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </DashboardShell>
   );

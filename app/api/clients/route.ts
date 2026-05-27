@@ -61,6 +61,15 @@ export async function POST(request: Request) {
     const email = body.email ? String(body.email).trim() : null;
     const phone = body.phone ? String(body.phone).trim() : null;
     const address = body.address ? String(body.address).trim() : null;
+    const logoUrl = body.logoUrl ? String(body.logoUrl).trim() : null;
+    const website = body.website ? String(body.website).trim() : null;
+    const facebookUrl = body.facebookUrl ? String(body.facebookUrl).trim() : null;
+    const instagramUrl = body.instagramUrl ? String(body.instagramUrl).trim() : null;
+    const tiktokUrl = body.tiktokUrl ? String(body.tiktokUrl).trim() : null;
+    const linkedinUrl = body.linkedinUrl ? String(body.linkedinUrl).trim() : null;
+    const youtubeUrl = body.youtubeUrl ? String(body.youtubeUrl).trim() : null;
+    const industry = body.industry ? String(body.industry).trim() : null;
+    const notes = body.notes ? String(body.notes).trim() : null;
 
     if (!name) {
       return NextResponse.json(
@@ -76,6 +85,15 @@ export async function POST(request: Request) {
         email,
         phone,
         address,
+        logoUrl,
+        website,
+        facebookUrl,
+        instagramUrl,
+        tiktokUrl,
+        linkedinUrl,
+        youtubeUrl,
+        industry,
+        notes,
         createdById: user.id,
       },
     });
@@ -90,6 +108,8 @@ export async function POST(request: Request) {
         companyName: client.companyName,
         email: client.email,
         phone: client.phone,
+        website: client.website,
+        industry: client.industry,
       },
     });
 

@@ -1,16 +1,32 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import {
+  ArrowLeft,
+  Building2,
+  CheckCircle2,
+  ExternalLink,
+  Mail,
+  MapPin,
+  Phone,
+  ReceiptText,
+  StickyNote,
+  UserRound,
+  WalletCards,
+} from "lucide-react";
+import {
+  FaFacebookF,
+  FaGlobe,
+  FaInstagram,
+  FaLinkedinIn,
+  FaTiktok,
+  FaYoutube,
+} from "react-icons/fa6";
+import type { IconType } from "react-icons";
+
+import { DeleteClientButton } from "@/components/delete-client-button";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DeleteClientButton } from "@/components/delete-client-button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -28,6 +44,12 @@ type ClientDetailPageProps = {
   }>;
 };
 
+type SocialLink = {
+  label: string;
+  href: string | null;
+  icon: IconType;
+};
+
 function formatCurrency(amount: number) {
   return `Rs. ${amount.toLocaleString("en-IN")}`;
 }
@@ -36,6 +58,30 @@ function formatDate(date: Date) {
   return new Intl.DateTimeFormat("en-NP", {
     dateStyle: "medium",
   }).format(date);
+}
+
+function getExternalHref(href: string) {
+  if (/^https?:\/\//i.test(href)) {
+    return href;
+  }
+
+  return `https://${href}`;
+}
+
+function getTypeBadgeClass(type: string) {
+  if (type === "INCOME") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (type === "EXPENSE") {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+
+  if (type === "INVESTMENT") {
+    return "border-slate-800 bg-slate-950 text-white";
+  }
+
+  return "border-slate-200 bg-slate-100 text-slate-700";
 }
 
 export default async function ClientDetailPage({
@@ -100,236 +146,502 @@ export default async function ClientDetailPage({
 
   const recoverableAmount = billableAmount - reimbursedAmount;
 
+  const displayName = client.companyName || client.name;
+  const initials = displayName.charAt(0).toUpperCase();
+  const socialLinks: SocialLink[] = [
+    { label: "Website", href: client.website, icon: FaGlobe },
+    { label: "Facebook", href: client.facebookUrl, icon: FaFacebookF },
+    { label: "Instagram", href: client.instagramUrl, icon: FaInstagram },
+    { label: "TikTok", href: client.tiktokUrl, icon: FaTiktok },
+    { label: "LinkedIn", href: client.linkedinUrl, icon: FaLinkedinIn },
+    { label: "YouTube", href: client.youtubeUrl, icon: FaYoutube },
+  ];
+
   return (
     <DashboardShell user={user}>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-950">
-              {client.companyName || client.name}
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Client details, projects, transactions, and recoverable expenses.
+        <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <div className="h-28 bg-[linear-gradient(135deg,#f8fafc_0%,#e2e8f0_45%,#f1f5f9_100%)]" />
+
+          <div className="px-5 pb-5">
+            <div className="-mt-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+              <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end">
+                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-slate-100 shadow-sm">
+                  {client.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={client.logoUrl}
+                      alt={`${displayName} logo`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-3xl font-bold text-slate-400">
+                      {initials}
+                    </span>
+                  )}
+                </div>
+
+                <div className="min-w-0 pb-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="truncate text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
+                      {displayName}
+                    </h1>
+
+                    {client.industry ? (
+                      <Badge className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                        {client.industry}
+                      </Badge>
+                    ) : null}
+
+                    <Badge className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold capitalize text-emerald-700 hover:bg-emerald-50">
+                      <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                      {client.status}
+                    </Badge>
+                  </div>
+
+                  <p className="mt-1 text-sm font-medium text-slate-500">
+                    {client.companyName ? client.name : "Client profile"}
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-500">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5">
+                      <Mail className="h-3.5 w-3.5 text-slate-400" />
+                      {client.email || "No email"}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5">
+                      <Phone className="h-3.5 w-3.5 text-slate-400" />
+                      {client.phone || "No phone"}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5">
+                      <FaGlobe className="h-3.5 w-3.5 text-slate-400" />
+                      {client.website || "No website"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl border-slate-200 bg-white px-3 text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950"
+                >
+                  <Link href="/clients">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Clients
+                  </Link>
+                </Button>
+
+                <Button
+                  asChild
+                  size="sm"
+                  className="h-9 rounded-xl bg-slate-950 px-3 text-white shadow-sm hover:bg-slate-800"
+                >
+                  <Link href={`/clients/${client.id}/edit`}>Edit Client</Link>
+                </Button>
+
+                <DeleteClientButton clientId={client.id} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+            {socialLinks.map((item) => {
+              const Icon = item.icon;
+
+              return item.href ? (
+                <a
+                  key={item.label}
+                  href={getExternalHref(item.href)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950"
+                >
+                  <span className="flex items-center gap-2">
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </span>
+                  <ExternalLink className="h-3.5 w-3.5 text-slate-300 transition group-hover:text-slate-500" />
+                </a>
+              ) : (
+                <span
+                  key={item.label}
+                  className="flex h-11 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 text-sm font-semibold text-slate-300"
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </span>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              label: "Client Expenses",
+              value: formatCurrency(totalClientExpenses),
+              icon: ReceiptText,
+            },
+            {
+              label: "Billable",
+              value: formatCurrency(billableAmount),
+              icon: WalletCards,
+            },
+            {
+              label: "Reimbursed",
+              value: formatCurrency(reimbursedAmount),
+              icon: CheckCircle2,
+            },
+            {
+              label: "Recoverable",
+              value: formatCurrency(recoverableAmount),
+              icon: Building2,
+            },
+          ].map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <div
+                key={item.label}
+                className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      {item.label}
+                    </p>
+                    <p className="mt-5 text-2xl font-bold text-slate-950">
+                      {item.value}
+                    </p>
+                  </div>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <UserRound className="h-4 w-4 text-slate-400" />
+                <h2 className="text-base font-semibold text-slate-950">
+                  About Client
+                </h2>
+              </div>
+
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Client Name
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-950">
+                    {client.name}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Company
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-950">
+                    {client.companyName || "-"}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Industry
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-950">
+                    {client.industry || "-"}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Created By
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-950">
+                    {client.createdBy?.name || "-"}
+                  </p>
+                  {client.createdBy?.email ? (
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {client.createdBy.email}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-slate-400" />
+                <h2 className="text-base font-semibold text-slate-950">
+                  Contact Details
+                </h2>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Email
+                    </p>
+                    <p className="mt-1 truncate text-sm font-semibold text-slate-950">
+                      {client.email || "-"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                  <Phone className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Phone
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-950">
+                      {client.phone || "-"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4 sm:col-span-2">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Address
+                    </p>
+                    <p className="mt-1 text-sm font-semibold leading-6 text-slate-950">
+                      {client.address || "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <StickyNote className="h-4 w-4 text-slate-400" />
+                <h2 className="text-base font-semibold text-slate-950">
+                  Internal Notes
+                </h2>
+              </div>
+
+              <div className="mt-5 rounded-xl bg-slate-50 p-4">
+                <p className="whitespace-pre-line text-sm leading-6 text-slate-600">
+                  {client.notes || "No internal notes added for this client."}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <aside className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2">
+              <FaGlobe className="h-4 w-4 text-slate-400" />
+              <h2 className="text-base font-semibold text-slate-950">
+                Digital Presence
+              </h2>
+            </div>
+
+            <div className="mt-5 space-y-2">
+              {socialLinks.map((item) => {
+                const Icon = item.icon;
+
+                return item.href ? (
+                  <a
+                    key={item.label}
+                    href={getExternalHref(item.href)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
+                  >
+                    <span className="flex items-center gap-3">
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </span>
+                    <ExternalLink className="h-3.5 w-3.5 text-slate-300 transition group-hover:text-slate-500" />
+                  </a>
+                ) : (
+                  <div
+                    key={item.label}
+                    className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-300"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-5 py-4">
+            <h2 className="text-base font-semibold text-slate-950">Projects</h2>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Projects linked with this client.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline">
-              <Link href="/clients">Back to Clients</Link>
-            </Button>
-
-            <Button asChild>
-              <Link href={`/clients/${client.id}/edit`}>Edit Client</Link>
-            </Button>
-
-            <DeleteClientButton clientId={client.id} />
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-slate-500">
-                Client Expenses
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">
-                {formatCurrency(totalClientExpenses)}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-slate-500">
-                Billable
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">
-                {formatCurrency(billableAmount)}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-slate-500">
-                Reimbursed
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">
-                {formatCurrency(reimbursedAmount)}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-slate-500">
-                Recoverable
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">
-                {formatCurrency(recoverableAmount)}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Client Information</CardTitle>
-            <CardDescription>
-              Basic contact and profile details.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="text-xs font-medium uppercase text-slate-500">
-                Client Name
-              </p>
-              <p className="mt-1 font-medium">{client.name}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase text-slate-500">
-                Company
-              </p>
-              <p className="mt-1 font-medium">{client.companyName || "-"}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase text-slate-500">
-                Email
-              </p>
-              <p className="mt-1 font-medium">{client.email || "-"}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase text-slate-500">
-                Phone
-              </p>
-              <p className="mt-1 font-medium">{client.phone || "-"}</p>
-            </div>
-            <div className="md:col-span-2">
-              <p className="text-xs font-medium uppercase text-slate-500">
-                Address
-              </p>
-              <p className="mt-1 font-medium">{client.address || "-"}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase text-slate-500">
-                Created By
-              </p>
-              <p className="mt-1 font-medium">
-                {client.createdBy?.name || "-"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Projects</CardTitle>
-            <CardDescription>Projects linked with this client.</CardDescription>
-          </CardHeader>
-
-          <CardContent>
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Budget</TableHead>
-                  <TableHead>Status</TableHead>
+                <TableRow className="border-slate-100 bg-slate-50/80 hover:bg-slate-50/80">
+                  <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Project
+                  </TableHead>
+                  <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Budget
+                  </TableHead>
+                  <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Status
+                  </TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
                 {client.projects.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={3}
-                      className="py-8 text-center text-sm text-slate-500"
-                    >
-                      No projects added for this client.
+                    <TableCell colSpan={3} className="py-12 text-center">
+                      <p className="text-sm font-semibold text-slate-950">
+                        No projects added yet
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Linked projects will appear here once created.
+                      </p>
                     </TableCell>
                   </TableRow>
                 ) : (
                   client.projects.map((project) => (
-                    <TableRow key={project.id}>
-                      <TableCell className="font-medium">
+                    <TableRow
+                      key={project.id}
+                      className="border-slate-100 hover:bg-slate-50"
+                    >
+                      <TableCell className="py-4 font-semibold text-slate-950">
                         {project.name}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-4 text-sm text-slate-600">
                         {project.budget
                           ? formatCurrency(Number(project.budget))
                           : "-"}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{project.status}</Badge>
+                      <TableCell className="py-4">
+                        <Badge
+                          variant="secondary"
+                          className="rounded-full bg-slate-100 text-slate-700"
+                        >
+                          {project.status}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Transactions</CardTitle>
-            <CardDescription>
+        <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-5 py-4">
+            <h2 className="text-base font-semibold text-slate-950">
+              Transactions
+            </h2>
+            <p className="mt-0.5 text-sm text-slate-500">
               Recent transactions linked with this client.
-            </CardDescription>
-          </CardHeader>
+            </p>
+          </div>
 
-          <CardContent>
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Done For</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Receipt</TableHead>
+                <TableRow className="border-slate-100 bg-slate-50/80 hover:bg-slate-50/80">
+                  <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Date
+                  </TableHead>
+                  <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Type
+                  </TableHead>
+                  <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Done For
+                  </TableHead>
+                  <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Project
+                  </TableHead>
+                  <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Amount
+                  </TableHead>
+                  <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Receipt
+                  </TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
                 {client.transactions.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="py-8 text-center text-sm text-slate-500"
-                    >
-                      No transactions linked with this client.
+                    <TableCell colSpan={6} className="py-12 text-center">
+                      <p className="text-sm font-semibold text-slate-950">
+                        No transactions linked yet
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Client income, expenses, investments, and withdrawals
+                        will appear here.
+                      </p>
                     </TableCell>
                   </TableRow>
                 ) : (
                   client.transactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell>{formatDate(transaction.date)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{transaction.type}</Badge>
+                    <TableRow
+                      key={transaction.id}
+                      className="border-slate-100 hover:bg-slate-50"
+                    >
+                      <TableCell className="whitespace-nowrap py-4 text-sm font-medium text-slate-600">
+                        {formatDate(transaction.date)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-4">
+                        <Badge
+                          variant="outline"
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide ${getTypeBadgeClass(
+                            transaction.type,
+                          )}`}
+                        >
+                          {transaction.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="min-w-[220px] py-4">
                         <Link
                           href={`/transactions/${transaction.id}`}
-                          className="font-medium hover:text-orange-600 hover:underline"
+                          className="font-semibold text-slate-950 hover:text-slate-700 hover:underline"
                         >
                           {transaction.doneFor || transaction.title}
                         </Link>
+                        {transaction.category ? (
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            {transaction.category.name}
+                          </p>
+                        ) : null}
                       </TableCell>
-                      <TableCell>{transaction.project?.name || "-"}</TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="py-4 text-sm text-slate-600">
+                        {transaction.project?.name || "-"}
+                      </TableCell>
+                      <TableCell className="py-4 font-semibold text-slate-950">
                         {formatCurrency(Number(transaction.amount))}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-4">
                         {transaction.attachments.length > 0 ? (
-                          <Badge variant="secondary">
+                          <Badge
+                            variant="secondary"
+                            className="rounded-full bg-slate-100 text-slate-700"
+                          >
                             {transaction.attachments.length} file
                           </Badge>
                         ) : (
@@ -343,8 +655,8 @@ export default async function ClientDetailPage({
                 )}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
     </DashboardShell>
   );

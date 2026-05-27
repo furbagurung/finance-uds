@@ -48,7 +48,7 @@ export async function GET(_request: Request, { params }: ClientRouteProps) {
   }
 }
 
-export async function PATCH(request: Request, { params }: ClientRouteProps) {
+async function updateClient(request: Request, { params }: ClientRouteProps) {
   try {
     const user = await getCurrentUser();
 
@@ -70,6 +70,15 @@ export async function PATCH(request: Request, { params }: ClientRouteProps) {
     const phone = body.phone ? String(body.phone).trim() : null;
     const address = body.address ? String(body.address).trim() : null;
     const status = body.status ? String(body.status).trim() : "active";
+    const logoUrl = body.logoUrl ? String(body.logoUrl).trim() : null;
+    const website = body.website ? String(body.website).trim() : null;
+    const facebookUrl = body.facebookUrl ? String(body.facebookUrl).trim() : null;
+    const instagramUrl = body.instagramUrl ? String(body.instagramUrl).trim() : null;
+    const tiktokUrl = body.tiktokUrl ? String(body.tiktokUrl).trim() : null;
+    const linkedinUrl = body.linkedinUrl ? String(body.linkedinUrl).trim() : null;
+    const youtubeUrl = body.youtubeUrl ? String(body.youtubeUrl).trim() : null;
+    const industry = body.industry ? String(body.industry).trim() : null;
+    const notes = body.notes ? String(body.notes).trim() : null;
 
     if (!name) {
       return NextResponse.json(
@@ -98,6 +107,15 @@ export async function PATCH(request: Request, { params }: ClientRouteProps) {
         phone,
         address,
         status,
+        logoUrl,
+        website,
+        facebookUrl,
+        instagramUrl,
+        tiktokUrl,
+        linkedinUrl,
+        youtubeUrl,
+        industry,
+        notes,
       },
     });
 
@@ -112,6 +130,8 @@ export async function PATCH(request: Request, { params }: ClientRouteProps) {
         email: client.email,
         phone: client.phone,
         status: client.status,
+        website: client.website,
+        industry: client.industry,
       },
     });
 
@@ -127,6 +147,13 @@ export async function PATCH(request: Request, { params }: ClientRouteProps) {
       { status: 500 }
     );
   }
+}
+export async function PATCH(request: Request, props: ClientRouteProps) {
+  return updateClient(request, props);
+}
+
+export async function PUT(request: Request, props: ClientRouteProps) {
+  return updateClient(request, props);
 }
 export async function DELETE(
   _request: Request,

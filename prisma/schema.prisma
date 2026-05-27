@@ -73,12 +73,21 @@ model Category {
 
 model Client {
   id          String  @id @default(cuid())
-  name        String
-  companyName String?
-  email       String?
-  phone       String?
-  address     String?
-  status      String  @default("active")
+  name         String
+  companyName  String?
+  email        String?
+  phone        String?
+  address      String?
+  status       String  @default("active")
+  logoUrl      String?
+  website      String?
+  facebookUrl  String?
+  instagramUrl String?
+  tiktokUrl    String?
+  linkedinUrl  String?
+  youtubeUrl   String?
+  industry     String?
+  notes        String? @db.Text
 
   projects     Project[]
   transactions Transaction[]
