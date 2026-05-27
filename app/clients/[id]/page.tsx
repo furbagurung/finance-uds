@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { ClientProfileActions } from "@/components/client-profile-actions";
 import { notFound, redirect } from "next/navigation";
+import { ClientCoverThemePicker } from "@/components/client-cover-theme-picker";
+import { ClientLogoUploader } from "@/components/client-logo-uploader";
 import {
   ArrowLeft,
   Building2,
@@ -12,6 +15,7 @@ import {
   ReceiptText,
   StickyNote,
   UserRound,
+
   WalletCards,
 } from "lucide-react";
 import {
@@ -68,7 +72,60 @@ function getExternalHref(href: string) {
 
   return `https://${href}`;
 }
+// CLIENT PROFILE THEME
+// Auto-generates a premium cover gradient and fallback logo color based on client name.
+// If coverTheme is manually selected, it overrides auto mode.
+function getProfileTheme(name: string, coverTheme = "auto") {
+  const themes = {
+    purple: {
+      cover:
+        "radial-gradient(circle at 18% 20%, rgba(255,255,255,0.25), transparent 28%), radial-gradient(circle at 80% 20%, rgba(236,72,153,0.35), transparent 30%), linear-gradient(135deg, #020617 0%, #312e81 42%, #9333ea 100%)",
+      avatarBg: "#f3e8ff",
+      avatarText: "#7e22ce",
+    },
+    emerald: {
+      cover:
+        "radial-gradient(circle at 18% 20%, rgba(255,255,255,0.25), transparent 28%), radial-gradient(circle at 80% 20%, rgba(34,197,94,0.32), transparent 30%), linear-gradient(135deg, #052e16 0%, #047857 45%, #22c55e 100%)",
+      avatarBg: "#dcfce7",
+      avatarText: "#047857",
+    },
+    ocean: {
+      cover:
+        "radial-gradient(circle at 18% 20%, rgba(255,255,255,0.25), transparent 28%), radial-gradient(circle at 80% 20%, rgba(56,189,248,0.34), transparent 30%), linear-gradient(135deg, #082f49 0%, #2563eb 45%, #38bdf8 100%)",
+      avatarBg: "#dbeafe",
+      avatarText: "#1d4ed8",
+    },
+    amber: {
+      cover:
+        "radial-gradient(circle at 18% 20%, rgba(255,255,255,0.25), transparent 28%), radial-gradient(circle at 80% 20%, rgba(245,158,11,0.34), transparent 30%), linear-gradient(135deg, #451a03 0%, #c2410c 45%, #f59e0b 100%)",
+      avatarBg: "#ffedd5",
+      avatarText: "#c2410c",
+    },
+    rose: {
+      cover:
+        "radial-gradient(circle at 18% 20%, rgba(255,255,255,0.25), transparent 28%), radial-gradient(circle at 80% 20%, rgba(244,63,94,0.34), transparent 30%), linear-gradient(135deg, #4a044e 0%, #be123c 45%, #fb7185 100%)",
+      avatarBg: "#ffe4e6",
+      avatarText: "#be123c",
+    },
+    slate: {
+      cover:
+        "radial-gradient(circle at 18% 20%, rgba(255,255,255,0.25), transparent 28%), radial-gradient(circle at 80% 20%, rgba(148,163,184,0.3), transparent 30%), linear-gradient(135deg, #020617 0%, #334155 45%, #94a3b8 100%)",
+      avatarBg: "#e2e8f0",
+      avatarText: "#334155",
+    },
+  };
 
+  if (coverTheme !== "auto" && coverTheme in themes) {
+    return themes[coverTheme as keyof typeof themes];
+  }
+
+  const autoThemes = Object.values(themes);
+  const seed = name
+    .split("")
+    .reduce((total, character) => total + character.charCodeAt(0), 0);
+
+  return autoThemes[seed % autoThemes.length];
+}
 function getTypeBadgeClass(type: string) {
   if (type === "INCOME") {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
@@ -149,6 +206,9 @@ export default async function ClientDetailPage({
 
   const displayName = client.companyName || client.name;
   const initials = displayName.charAt(0).toUpperCase();
+
+  const profileTheme = getProfileTheme(displayName, client.coverTheme || "auto");
+
   const socialLinks: SocialLink[] = [
     { label: "Website", href: client.website, icon: FaGlobe },
     { label: "Facebook", href: client.facebookUrl, icon: FaFacebookF },
@@ -162,29 +222,51 @@ export default async function ClientDetailPage({
     <DashboardShell user={user}>
       <div className="mx-auto w-full max-w-[1304px] space-y-6">
         <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-          <div className="relative h-32 border-b border-slate-100 bg-[radial-gradient(circle_at_18%_22%,rgba(255,255,255,0.95),transparent_28%),linear-gradient(135deg,#f8fafc_0%,#e2e8f0_48%,#f8fafc_100%)]">
-            <div className="absolute inset-x-0 bottom-0 h-px bg-white/80" />
+          {/* CLIENT PROFILE COVER
+    Edit this block to change the Facebook-style cover/banner height, gradient, and texture.
+*/}
+          <div
+            className="relative h-36 overflow-visible border-b border-slate-100"
+            style={{ background: profileTheme.cover }}
+          >
+            {/* Subtle noise/grid overlay for premium SaaS texture */}
+            <div className="pointer-events-none absolute inset-0 opacity-[0.18] [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.55)_1px,transparent_0)] [background-size:18px_18px]" />
+            {/* CLIENT PROFILE LOGO UPLOAD
+    Logo can now be uploaded, changed, or removed directly from the profile page.
+    Main upload logic lives in components/client-logo-uploader.tsx.
+*/}
+            <ClientLogoUploader
+              clientId={client.id}
+              clientName={displayName}
+              initials={initials}
+              logoUrl={client.logoUrl}
+              avatarBg={profileTheme.avatarBg}
+              avatarText={profileTheme.avatarText}
+            />
+            {/* CLIENT PROFILE ACTIONS
+    Back stays visible. Edit/Delete are inside the client settings dropdown.
+*/}
+            {/* CLIENT PROFILE ACTIONS
+    Back is navigation. Cover edits and client settings are separated for cleaner UX.
+*/}
+            <ClientProfileActions
+              clientId={client.id}
+              currentTheme={client.coverTheme}
+            />
           </div>
 
-          <div className="px-5 pb-5">
-            <div className="-mt-12 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-              <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end">
-                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-slate-100 shadow-sm ring-1 ring-slate-100">
-                  {client.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={client.logoUrl}
-                      alt={`${displayName} logo`}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-3xl font-bold text-slate-400">
-                      {initials}
-                    </span>
-                  )}
-                </div>
+          {/* CLIENT PROFILE BODY
+    Top padding gives space for the half-overlapped profile logo.
+*/}
+          <div className="px-5 pb-5 pt-14">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              {/* CLIENT PROFILE IDENTITY
+    Edit this block to change logo, client name, status badge, and contact chips.
+*/}
+              <div className="min-w-0">
 
-                <div className="min-w-0 pb-1">
+
+                <div className="min-w-0 pt-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="truncate text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
                       {displayName}
@@ -206,15 +288,17 @@ export default async function ClientDetailPage({
                     {client.companyName ? client.name : "Client profile"}
                   </p>
 
-                  <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-500">
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-slate-500">
                     <span className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3">
                       <Mail className="h-3.5 w-3.5 text-slate-400" />
                       {client.email || "No email"}
                     </span>
+
                     <span className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3">
                       <Phone className="h-3.5 w-3.5 text-slate-400" />
                       {client.phone || "No phone"}
                     </span>
+
                     <span className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3">
                       <FaGlobe className="h-3.5 w-3.5 text-slate-400" />
                       {client.website || "No website"}
@@ -223,24 +307,15 @@ export default async function ClientDetailPage({
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="h-9 rounded-xl border-slate-200 bg-white px-3 text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950"
-                >
+              <div className="flex flex-wrap gap-2 xl:hidden">
+                <Button asChild variant="outline" size="sm">
                   <Link href="/clients">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Clients
+                    Back
                   </Link>
                 </Button>
 
-                <Button
-                  asChild
-                  size="sm"
-                  className="h-9 rounded-xl bg-slate-950 px-3 text-white shadow-sm hover:bg-slate-800"
-                >
+                <Button asChild size="sm">
                   <Link href={`/clients/${client.id}/edit`}>Edit Client</Link>
                 </Button>
 
@@ -248,60 +323,62 @@ export default async function ClientDetailPage({
               </div>
             </div>
 
-            <div className="mt-5 border-t border-slate-100 pt-4">
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
-                {socialLinks.map((item) => {
-                  const Icon = item.icon;
-
-                  return item.href ? (
-                    <a
-                      key={item.label}
-                      href={getExternalHref(item.href)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="group flex h-10 items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Icon className="h-3.5 w-3.5" />
-                        {item.label}
-                      </span>
-                      <ExternalLink className="h-3 w-3 text-slate-300 transition group-hover:text-slate-500" />
-                    </a>
-                  ) : (
-                    <span
-                      key={item.label}
-                      className="flex h-10 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 text-xs font-semibold text-slate-300"
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {item.label}
-                    </span>
-                  );
-                })}
-              </div>
+            {/* CLIENT PROFILE NAVIGATION
+    Edit this block to change the Facebook/LinkedIn-style profile tabs.
+*/}
+            {/* CLIENT PROFILE TABS
+    Edit this block to change Overview, Projects, Transactions, Notes, and Social Pages tabs.
+*/}
+            <div className="mt-5 flex flex-wrap items-center gap-1 border-t border-slate-100 pt-4">
+              {[
+                "Overview",
+                `Projects ${client.projects.length}`,
+                `Transactions ${client.transactions.length}`,
+                "Notes",
+                "Social Pages",
+              ].map((item, index) => (
+                <span
+                  key={item}
+                  className={
+                    index === 0
+                      ? "inline-flex h-9 items-center rounded-lg bg-slate-950 px-4 text-xs font-semibold text-white shadow-sm"
+                      : "inline-flex h-9 items-center rounded-lg px-4 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-950"
+                  }
+                >
+                  {item}
+                </span>
+              ))}
             </div>
           </div>
         </section>
 
+        {/* CLIENT FINANCE SUMMARY CARDS
+    Edit this section to change the four finance summary cards.
+*/}
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[
             {
               label: "Client Expenses",
               value: formatCurrency(totalClientExpenses),
+              helper: "Total client-scoped expenses recorded",
               icon: ReceiptText,
             },
             {
               label: "Billable",
               value: formatCurrency(billableAmount),
+              helper: "Recoverable amount marked for billing",
               icon: WalletCards,
             },
             {
               label: "Reimbursed",
               value: formatCurrency(reimbursedAmount),
+              helper: "Amount already recovered",
               icon: CheckCircle2,
             },
             {
               label: "Recoverable",
               value: formatCurrency(recoverableAmount),
+              helper: "Pending reimbursement balance",
               icon: Building2,
             },
           ].map((item) => {
@@ -310,18 +387,24 @@ export default async function ClientDetailPage({
             return (
               <div
                 key={item.label}
-                className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
+                className="group rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:border-slate-200 hover:bg-slate-50"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                       {item.label}
                     </p>
-                    <p className="mt-3 text-xl font-bold text-slate-950">
+
+                    <p className="mt-3 text-2xl font-bold tracking-tight text-slate-950">
                       {item.value}
                     </p>
+
+                    <p className="mt-1 text-xs font-medium text-slate-500">
+                      {item.helper}
+                    </p>
                   </div>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500 transition group-hover:bg-white">
                     <Icon className="h-4 w-4" />
                   </span>
                 </div>
@@ -330,17 +413,30 @@ export default async function ClientDetailPage({
           })}
         </section>
 
+        {/* CLIENT CRM OVERVIEW SECTION
+    Edit this section to change About, Contact, Notes, and Digital Presence cards.
+*/}
         <section className="grid gap-6 lg:grid-cols-12">
           <div className="space-y-6 lg:col-span-8">
-            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-2">
-                <UserRound className="h-4 w-4 text-slate-400" />
-                <h2 className="text-base font-semibold text-slate-950">
-                  About Client
-                </h2>
+            {/* ABOUT CLIENT CARD */}
+            <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <div className="border-b border-slate-100 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500">
+                    <UserRound className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <h2 className="text-base font-semibold text-slate-950">
+                      About Client
+                    </h2>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Core business profile and ownership details.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-5 divide-y divide-slate-100">
+              <div className="divide-y divide-slate-100">
                 {[
                   {
                     label: "Client Name",
@@ -369,16 +465,17 @@ export default async function ClientDetailPage({
                   return (
                     <div
                       key={item.label}
-                      className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
+                      className="flex items-start gap-4 px-5 py-4 transition hover:bg-slate-50"
                     >
-                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500">
                         <Icon className="h-4 w-4" />
                       </span>
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                           {item.label}
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-slate-950">
+                        <p className="mt-1 break-words text-sm font-semibold text-slate-950">
                           {item.value}
                         </p>
                         {item.helper ? (
@@ -393,52 +490,64 @@ export default async function ClientDetailPage({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-slate-400" />
-                <h2 className="text-base font-semibold text-slate-950">
-                  Contact Details
-                </h2>
+            {/* CONTACT DETAILS CARD */}
+            <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <div className="border-b border-slate-100 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500">
+                    <Phone className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <h2 className="text-base font-semibold text-slate-950">
+                      Contact Details
+                    </h2>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Primary communication details for this client.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-5 divide-y divide-slate-100">
-                <div className="flex items-start gap-3 pb-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+              <div className="grid gap-0 divide-y divide-slate-100 md:grid-cols-2 md:divide-x md:divide-y-0">
+                <div className="flex items-start gap-4 px-5 py-4 transition hover:bg-slate-50">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500">
                     <Mail className="h-4 w-4" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                       Email
                     </p>
-                    <p className="mt-1 truncate text-sm font-semibold text-slate-950">
+                    <p className="mt-1 break-words text-sm font-semibold text-slate-950">
                       {client.email || "-"}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 py-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+                <div className="flex items-start gap-4 px-5 py-4 transition hover:bg-slate-50">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500">
                     <Phone className="h-4 w-4" />
                   </span>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                       Phone
                     </p>
-                    <p className="mt-1 text-sm font-semibold text-slate-950">
+                    <p className="mt-1 break-words text-sm font-semibold text-slate-950">
                       {client.phone || "-"}
                     </p>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex items-start gap-3 pt-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+              <div className="border-t border-slate-100 px-5 py-4 transition hover:bg-slate-50">
+                <div className="flex items-start gap-4">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500">
                     <MapPin className="h-4 w-4" />
                   </span>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                       Address
                     </p>
-                    <p className="mt-1 text-sm font-semibold leading-6 text-slate-950">
+                    <p className="mt-1 break-words text-sm font-semibold leading-6 text-slate-950">
                       {client.address || "-"}
                     </p>
                   </div>
@@ -446,35 +555,70 @@ export default async function ClientDetailPage({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-2">
-                <StickyNote className="h-4 w-4 text-slate-400" />
-                <h2 className="text-base font-semibold text-slate-950">
-                  Internal Notes
-                </h2>
+            {/* INTERNAL NOTES CARD */}
+            <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <div className="border-b border-slate-100 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500">
+                    <StickyNote className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <h2 className="text-base font-semibold text-slate-950">
+                      Internal Notes
+                    </h2>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Private notes for service scope, billing, and client preferences.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-                <p className="whitespace-pre-line text-sm leading-6 text-slate-600">
-                  {client.notes || "No internal notes added for this client."}
-                </p>
+              <div className="p-5">
+                {client.notes ? (
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                    <p className="whitespace-pre-line text-sm leading-6 text-slate-700">
+                      {client.notes}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-4">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-slate-400">
+                      <StickyNote className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">
+                        No internal notes yet
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-slate-500">
+                        Add private context, billing preferences, or service
+                        notes when they become available.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          <aside className="h-fit rounded-2xl border border-slate-100 bg-white p-5 shadow-sm lg:col-span-4">
-            <div className="flex items-center gap-2">
-              <FaGlobe className="h-4 w-4 text-slate-400" />
-              <h2 className="text-base font-semibold text-slate-950">
-                Digital Presence
-              </h2>
+          {/* DIGITAL PRESENCE SIDEBAR */}
+          <aside className="h-fit overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm lg:col-span-4">
+            <div className="border-b border-slate-100 px-5 py-4">
+              <div className="flex items-center gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500">
+                  <FaGlobe className="h-4 w-4" />
+                </span>
+                <div>
+                  <h2 className="text-base font-semibold text-slate-950">
+                    Digital Presence
+                  </h2>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Social pages and owned channels.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Social pages and owned channels for this client.
-            </p>
-
-            <div className="mt-5 space-y-2">
+            <div className="grid gap-2 p-5 sm:grid-cols-2 lg:grid-cols-1">
               {socialLinks.map((item) => {
                 const Icon = item.icon;
 
@@ -484,10 +628,12 @@ export default async function ClientDetailPage({
                     href={getExternalHref(item.href)}
                     target="_blank"
                     rel="noreferrer"
-                    className="group flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
+                    className="group flex items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-200 hover:bg-slate-50 hover:text-slate-950"
                   >
                     <span className="flex items-center gap-3">
-                      <Icon className="h-4 w-4" />
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500">
+                        <Icon className="h-4 w-4" />
+                      </span>
                       {item.label}
                     </span>
                     <ExternalLink className="h-3.5 w-3.5 text-slate-300 transition group-hover:text-slate-500" />
@@ -495,10 +641,17 @@ export default async function ClientDetailPage({
                 ) : (
                   <div
                     key={item.label}
-                    className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-300"
+                    className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-300"
                   >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
+                    <span className="flex items-center gap-3">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-300">
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      {item.label}
+                    </span>
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-300">
+                      Missing
+                    </span>
                   </div>
                 );
               })}
@@ -507,11 +660,24 @@ export default async function ClientDetailPage({
         </section>
 
         <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="text-base font-semibold text-slate-950">Projects</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Projects linked with this client.
-            </p>
+          <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500">
+                <FolderKanban className="h-4 w-4" />
+              </span>
+              <div>
+                <h2 className="text-base font-semibold text-slate-950">
+                  Projects
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Projects linked with this client.
+                </p>
+              </div>
+            </div>
+
+            <span className="rounded-full border border-slate-100 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500">
+              {client.projects.length} total
+            </span>
           </div>
 
           <div className="overflow-x-auto">
@@ -534,7 +700,7 @@ export default async function ClientDetailPage({
                 {client.projects.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} className="py-12 text-center">
-                      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-400">
                         <FolderKanban className="h-5 w-5" />
                       </div>
                       <p className="mt-3 text-sm font-semibold text-slate-950">
@@ -551,8 +717,15 @@ export default async function ClientDetailPage({
                       key={project.id}
                       className="border-slate-100 hover:bg-slate-50"
                     >
-                      <TableCell className="py-4 font-semibold text-slate-950">
-                        {project.name}
+                      <TableCell className="min-w-[240px] py-4">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-500">
+                            <FolderKanban className="h-4 w-4" />
+                          </span>
+                          <span className="font-semibold text-slate-950">
+                            {project.name}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="py-4 text-sm text-slate-600">
                         {project.budget
@@ -576,13 +749,24 @@ export default async function ClientDetailPage({
         </section>
 
         <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="text-base font-semibold text-slate-950">
-              Transactions
-            </h2>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Recent transactions linked with this client.
-            </p>
+          <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500">
+                <ReceiptText className="h-4 w-4" />
+              </span>
+              <div>
+                <h2 className="text-base font-semibold text-slate-950">
+                  Transactions
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Recent transactions linked with this client.
+                </p>
+              </div>
+            </div>
+
+            <span className="rounded-full border border-slate-100 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500">
+              {client.transactions.length} total
+            </span>
           </div>
 
           <div className="overflow-x-auto">
@@ -614,7 +798,7 @@ export default async function ClientDetailPage({
                 {client.transactions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="py-12 text-center">
-                      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-400">
                         <ReceiptText className="h-5 w-5" />
                       </div>
                       <p className="mt-3 text-sm font-semibold text-slate-950">
@@ -666,14 +850,28 @@ export default async function ClientDetailPage({
                       </TableCell>
                       <TableCell className="py-4">
                         {transaction.attachments.length > 0 ? (
-                          <Badge
-                            variant="secondary"
-                            className="rounded-full bg-slate-100 text-slate-700"
-                          >
-                            {transaction.attachments.length} file
-                          </Badge>
+                          <div className="flex flex-wrap gap-2">
+                            {transaction.attachments
+                              .slice(0, 2)
+                              .map((attachment) => (
+                                <Link
+                                  key={attachment.id}
+                                  href={attachment.fileUrl}
+                                  target="_blank"
+                                  className="inline-flex h-8 items-center rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950"
+                                >
+                                  View file
+                                </Link>
+                              ))}
+
+                            {transaction.attachments.length > 2 ? (
+                              <span className="inline-flex h-8 items-center rounded-full bg-slate-100 px-3 text-xs font-semibold text-slate-600">
+                                +{transaction.attachments.length - 2}
+                              </span>
+                            ) : null}
+                          </div>
                         ) : (
-                          <span className="text-sm text-slate-400">
+                          <span className="text-sm font-medium text-slate-400">
                             No file
                           </span>
                         )}
