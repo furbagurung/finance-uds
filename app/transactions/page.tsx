@@ -240,75 +240,7 @@ export default async function TransactionsPage({
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="grid divide-y divide-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5">
-            <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
-                <WalletCards className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Records
-                </p>
-                <p className="mt-0.5 text-lg font-bold text-slate-950">
-                  {transactions.length}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                <ArrowUpRight className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Income
-                </p>
-                <p className="mt-0.5 text-lg font-bold text-emerald-700">
-                  {formatCurrency(filteredIncome)}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
-                <ArrowDownLeft className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Expenses
-                </p>
-                <p className="mt-0.5 text-lg font-bold text-rose-700">
-                  {formatCurrency(filteredExpenses)}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
-                <Landmark className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Net View
-                </p>
-                <p className="mt-0.5 text-lg font-bold text-slate-950">
-                  {formatCurrency(filteredNet)}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-3.5 sm:col-span-2 xl:col-span-1">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
-                <ReceiptText className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Receipts
-                </p>
-                <p className="mt-0.5 text-lg font-bold text-amber-700">
-                  {receiptCount}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      
 
         <TransactionFilters
           clients={clients}
@@ -320,24 +252,53 @@ export default async function TransactionsPage({
           toDate={toDate}
         />
 
-        <Card className="overflow-hidden rounded-3xl border-slate-200 bg-white shadow-sm ring-1 ring-slate-100/70">
-          <CardHeader className="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <CardTitle className="text-lg font-semibold tracking-tight text-slate-950">
-                Transaction Journal
-              </CardTitle>
-              <CardDescription className="mt-1 text-sm text-slate-500">
-                Date, source, client, project, amount, and receipt status.
-              </CardDescription>
-            </div>
+        <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <CardHeader className="border-b border-slate-100 bg-slate-50/40 px-5 py-3.5">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Records
+                </p>
+                <p className="mt-0.5 text-base font-bold text-slate-950">
+                  {transactions.length}
+                </p>
+              </div>
 
-            <div className="w-fit rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Net in current view
-              </p>
-              <p className="mt-0.5 text-base font-bold text-slate-950">
-                {formatCurrency(filteredNet)}
-              </p>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Income
+                </p>
+                <p className="mt-0.5 text-base font-bold text-emerald-700">
+                  {formatCurrency(filteredIncome)}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Expenses
+                </p>
+                <p className="mt-0.5 text-base font-bold text-rose-700">
+                  {formatCurrency(filteredExpenses)}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Net View
+                </p>
+                <p className="mt-0.5 text-base font-bold text-slate-950">
+                  {formatCurrency(filteredNet)}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Receipts
+                </p>
+                <p className="mt-0.5 text-base font-bold text-amber-700">
+                  {receiptCount}
+                </p>
+              </div>
             </div>
           </CardHeader>
 
@@ -362,32 +323,32 @@ export default async function TransactionsPage({
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50 hover:bg-slate-50">
-                      <TableHead className="h-12 rounded-tl-2xl text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <TableRow className="border-slate-100 bg-slate-50/80 hover:bg-slate-50/80">
+                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Date
                       </TableHead>
-                      <TableHead className="h-12 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Type
                       </TableHead>
-                      <TableHead className="h-12 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Paid By
                       </TableHead>
-                      <TableHead className="h-12 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Client
                       </TableHead>
-                      <TableHead className="h-12 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Project
                       </TableHead>
-                      <TableHead className="h-12 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Done For
                       </TableHead>
-                      <TableHead className="h-12 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Scope
                       </TableHead>
                       <TableHead className="h-12 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                         Amount
                       </TableHead>
-                      <TableHead className="h-12 rounded-tr-2xl text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <TableHead className="h-11 text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Receipt
                       </TableHead>
                     </TableRow>
@@ -397,7 +358,7 @@ export default async function TransactionsPage({
                     {transactions.map((transaction) => (
                       <TableRow
                         key={transaction.id}
-                        className="border-slate-100 hover:bg-slate-50/80"
+                        className="border-slate-100 transition-colors hover:bg-slate-50"
                       >
                         <TableCell className="whitespace-nowrap py-5 text-sm font-medium text-slate-600">
                           {formatDate(transaction.date)}
