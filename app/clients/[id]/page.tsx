@@ -5,6 +5,7 @@ import {
   Building2,
   CheckCircle2,
   ExternalLink,
+  FolderKanban,
   Mail,
   MapPin,
   Phone,
@@ -159,14 +160,16 @@ export default async function ClientDetailPage({
 
   return (
     <DashboardShell user={user}>
-      <div className="space-y-6">
+      <div className="mx-auto w-full max-w-[1304px] space-y-6">
         <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-          <div className="h-28 bg-[linear-gradient(135deg,#f8fafc_0%,#e2e8f0_45%,#f1f5f9_100%)]" />
+          <div className="relative h-32 border-b border-slate-100 bg-[radial-gradient(circle_at_18%_22%,rgba(255,255,255,0.95),transparent_28%),linear-gradient(135deg,#f8fafc_0%,#e2e8f0_48%,#f8fafc_100%)]">
+            <div className="absolute inset-x-0 bottom-0 h-px bg-white/80" />
+          </div>
 
           <div className="px-5 pb-5">
-            <div className="-mt-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div className="-mt-12 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
               <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end">
-                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-slate-100 shadow-sm">
+                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-slate-100 shadow-sm ring-1 ring-slate-100">
                   {client.logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -187,16 +190,16 @@ export default async function ClientDetailPage({
                       {displayName}
                     </h1>
 
+                    <Badge className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold capitalize text-emerald-700 hover:bg-emerald-50">
+                      <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                      {client.status}
+                    </Badge>
+
                     {client.industry ? (
                       <Badge className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">
                         {client.industry}
                       </Badge>
                     ) : null}
-
-                    <Badge className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold capitalize text-emerald-700 hover:bg-emerald-50">
-                      <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                      {client.status}
-                    </Badge>
                   </div>
 
                   <p className="mt-1 text-sm font-medium text-slate-500">
@@ -204,15 +207,15 @@ export default async function ClientDetailPage({
                   </p>
 
                   <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-500">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5">
+                    <span className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3">
                       <Mail className="h-3.5 w-3.5 text-slate-400" />
                       {client.email || "No email"}
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5">
+                    <span className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3">
                       <Phone className="h-3.5 w-3.5 text-slate-400" />
                       {client.phone || "No phone"}
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5">
+                    <span className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3">
                       <FaGlobe className="h-3.5 w-3.5 text-slate-400" />
                       {client.website || "No website"}
                     </span>
@@ -244,38 +247,38 @@ export default async function ClientDetailPage({
                 <DeleteClientButton clientId={client.id} />
               </div>
             </div>
-          </div>
-        </section>
 
-        <section className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
-            {socialLinks.map((item) => {
-              const Icon = item.icon;
+            <div className="mt-5 border-t border-slate-100 pt-4">
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+                {socialLinks.map((item) => {
+                  const Icon = item.icon;
 
-              return item.href ? (
-                <a
-                  key={item.label}
-                  href={getExternalHref(item.href)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950"
-                >
-                  <span className="flex items-center gap-2">
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </span>
-                  <ExternalLink className="h-3.5 w-3.5 text-slate-300 transition group-hover:text-slate-500" />
-                </a>
-              ) : (
-                <span
-                  key={item.label}
-                  className="flex h-11 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 text-sm font-semibold text-slate-300"
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </span>
-              );
-            })}
+                  return item.href ? (
+                    <a
+                      key={item.label}
+                      href={getExternalHref(item.href)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group flex h-10 items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Icon className="h-3.5 w-3.5" />
+                        {item.label}
+                      </span>
+                      <ExternalLink className="h-3 w-3 text-slate-300 transition group-hover:text-slate-500" />
+                    </a>
+                  ) : (
+                    <span
+                      key={item.label}
+                      className="flex h-10 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 text-xs font-semibold text-slate-300"
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {item.label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </section>
 
@@ -307,14 +310,14 @@ export default async function ClientDetailPage({
             return (
               <div
                 key={item.label}
-                className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
+                className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                       {item.label}
                     </p>
-                    <p className="mt-5 text-2xl font-bold text-slate-950">
+                    <p className="mt-3 text-xl font-bold text-slate-950">
                       {item.value}
                     </p>
                   </div>
@@ -327,8 +330,8 @@ export default async function ClientDetailPage({
           })}
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="space-y-6">
+        <section className="grid gap-6 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-8">
             <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-2">
                 <UserRound className="h-4 w-4 text-slate-400" />
@@ -337,47 +340,56 @@ export default async function ClientDetailPage({
                 </h2>
               </div>
 
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Client Name
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-950">
-                    {client.name}
-                  </p>
-                </div>
+              <div className="mt-5 divide-y divide-slate-100">
+                {[
+                  {
+                    label: "Client Name",
+                    value: client.name,
+                    icon: UserRound,
+                  },
+                  {
+                    label: "Company",
+                    value: client.companyName || "-",
+                    icon: Building2,
+                  },
+                  {
+                    label: "Industry",
+                    value: client.industry || "-",
+                    icon: WalletCards,
+                  },
+                  {
+                    label: "Created By",
+                    value: client.createdBy?.name || "-",
+                    helper: client.createdBy?.email || "",
+                    icon: CheckCircle2,
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
 
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Company
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-950">
-                    {client.companyName || "-"}
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Industry
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-950">
-                    {client.industry || "-"}
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Created By
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-950">
-                    {client.createdBy?.name || "-"}
-                  </p>
-                  {client.createdBy?.email ? (
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {client.createdBy.email}
-                    </p>
-                  ) : null}
-                </div>
+                  return (
+                    <div
+                      key={item.label}
+                      className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
+                    >
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          {item.label}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-slate-950">
+                          {item.value}
+                        </p>
+                        {item.helper ? (
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            {item.helper}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -389,9 +401,11 @@ export default async function ClientDetailPage({
                 </h2>
               </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
-                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+              <div className="mt-5 divide-y divide-slate-100">
+                <div className="flex items-start gap-3 pb-3">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+                    <Mail className="h-4 w-4" />
+                  </span>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                       Email
@@ -402,8 +416,10 @@ export default async function ClientDetailPage({
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
-                  <Phone className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                <div className="flex items-start gap-3 py-3">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+                    <Phone className="h-4 w-4" />
+                  </span>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                       Phone
@@ -414,8 +430,10 @@ export default async function ClientDetailPage({
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4 sm:col-span-2">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                <div className="flex items-start gap-3 pt-3">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+                    <MapPin className="h-4 w-4" />
+                  </span>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                       Address
@@ -436,7 +454,7 @@ export default async function ClientDetailPage({
                 </h2>
               </div>
 
-              <div className="mt-5 rounded-xl bg-slate-50 p-4">
+              <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50/70 p-4">
                 <p className="whitespace-pre-line text-sm leading-6 text-slate-600">
                   {client.notes || "No internal notes added for this client."}
                 </p>
@@ -444,13 +462,17 @@ export default async function ClientDetailPage({
             </div>
           </div>
 
-          <aside className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <aside className="h-fit rounded-2xl border border-slate-100 bg-white p-5 shadow-sm lg:col-span-4">
             <div className="flex items-center gap-2">
               <FaGlobe className="h-4 w-4 text-slate-400" />
               <h2 className="text-base font-semibold text-slate-950">
                 Digital Presence
               </h2>
             </div>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Social pages and owned channels for this client.
+            </p>
 
             <div className="mt-5 space-y-2">
               {socialLinks.map((item) => {
@@ -512,7 +534,10 @@ export default async function ClientDetailPage({
                 {client.projects.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} className="py-12 text-center">
-                      <p className="text-sm font-semibold text-slate-950">
+                      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                        <FolderKanban className="h-5 w-5" />
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-slate-950">
                         No projects added yet
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
@@ -589,7 +614,10 @@ export default async function ClientDetailPage({
                 {client.transactions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="py-12 text-center">
-                      <p className="text-sm font-semibold text-slate-950">
+                      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                        <ReceiptText className="h-5 w-5" />
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-slate-950">
                         No transactions linked yet
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
