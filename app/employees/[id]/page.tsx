@@ -83,9 +83,15 @@ export default async function EmployeeDetailPage({
             </p>
           </div>
 
-          <Badge variant={employee.status === "ACTIVE" ? "default" : "outline"}>
-            {employee.status}
-          </Badge>
+         <div className="flex items-center gap-3">
+  <Badge variant={employee.status === "ACTIVE" ? "default" : "outline"}>
+    {employee.status}
+  </Badge>
+
+  <Button asChild>
+    <Link href={`/employees/${employee.id}/edit`}>Edit Employee</Link>
+  </Button>
+</div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
