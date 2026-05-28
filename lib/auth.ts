@@ -8,10 +8,9 @@ if (!JWT_SECRET) {
 }
 
 const secret: Secret = JWT_SECRET;
-
 export type AuthTokenPayload = {
   userId: string;
-  role: "ADMIN" | "STAFF";
+  role: "ADMIN" | "STAFF" | "EMPLOYEE";
 };
 
 export function hashPassword(password: string) {

@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type Role = "ADMIN" | "STAFF";
+type Role = "ADMIN" | "STAFF" | "EMPLOYEE";
 
 type User = {
   id: string;
@@ -115,6 +115,7 @@ export function EditUserForm({ user }: EditUserFormProps) {
               <SelectContent>
                 <SelectItem value="STAFF">Staff</SelectItem>
                 <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="EMPLOYEE">Employee</SelectItem>
               </SelectContent>
             </Select>
           </div>
