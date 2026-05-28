@@ -19,6 +19,7 @@ import {
   ChevronRight,
   DatabaseBackup,
   IdCard,
+  WalletCards,
   LayoutDashboard,
   PanelLeftClose,
   PanelLeftOpen,
@@ -114,22 +115,28 @@ const sidebarSections: SidebarSection[] = [
     ],
   },
   {
-  label: "TEAM",
-  items: [
-    {
-      title: "Users",
-      href: "/users",
-      icon: Users,
-      adminOnly: true,
-    },
-    {
-      title: "Employees",
-      href: "/employees",
-      icon: IdCard,
-      adminOnly: true,
-    },
-  ],
-},
+    label: "TEAM",
+    items: [
+      {
+        title: "Users",
+        href: "/users",
+        icon: Users,
+        adminOnly: true,
+      },
+      {
+        title: "Employees",
+        href: "/employees",
+        icon: IdCard,
+        adminOnly: true,
+      },
+      {
+        title: "Payroll",
+        href: "/payroll",
+        icon: WalletCards,
+        adminOnly: true,
+      },
+    ],
+  },
   {
     label: "SYSTEM",
     items: [

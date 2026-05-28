@@ -10,6 +10,7 @@ type CreateActivityLogInput = {
   | "CATEGORY"
   | "USER"
   | "EMPLOYEE"
+  | "PAYROLL"
   | "ATTACHMENT"
   | "AUTH";
   entityId?: string | null;
