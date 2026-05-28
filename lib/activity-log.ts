@@ -3,7 +3,15 @@ import { prisma } from "@/lib/prisma";
 
 type CreateActivityLogInput = {
   action: "CREATE" | "UPDATE" | "DELETE" | "UPLOAD" | "LOGIN" | "LOGOUT";
-  entity: "TRANSACTION" | "CLIENT" | "PROJECT" | "CATEGORY" | "USER" | "ATTACHMENT" | "AUTH";
+  entity:
+  | "CLIENT"
+  | "TRANSACTION"
+  | "PROJECT"
+  | "CATEGORY"
+  | "USER"
+  | "EMPLOYEE"
+  | "ATTACHMENT"
+  | "AUTH";
   entityId?: string | null;
   message: string;
   userId?: string | null;
