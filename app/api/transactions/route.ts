@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { ExpenseScope, PaymentMethod, TransactionType } from "@prisma/client";
+import {
+  ExpenseScope,
+  PaymentMethod,
+  PayrollStatus,
+  TransactionType,
+} from "@prisma/client";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { createActivityLog } from "@/lib/activity-log";
@@ -84,6 +89,18 @@ export async function POST(request: Request) {
     const isReimbursed = Boolean(body.isReimbursed);
     const attachment = body.attachment;
 
+    const isSalaryExpense = Boolean(body.isSalaryExpense);
+    const salaryEmployeeId = body.salaryEmployeeId
+      ? String(body.salaryEmployeeId).trim()
+      : null;
+    const salaryMonth = body.salaryMonth ? Number(body.salaryMonth) : null;
+    const salaryYear = body.salaryYear ? Number(body.salaryYear) : null;
+    const salaryBasicSalary = body.salaryBasicSalary
+      ? Number(body.salaryBasicSalary)
+      : amount;
+    const salaryBonus = body.salaryBonus ? Number(body.salaryBonus) : 0;
+    const salaryDeduction = body.salaryDeduction ? Number(body.salaryDeduction) : 0;
+
     if (!Object.values(TransactionType).includes(type)) {
       return NextResponse.json(
         { message: "Invalid transaction type." },
@@ -112,42 +129,176 @@ export async function POST(request: Request) {
       );
     }
 
-  const transaction = await prisma.transaction.create({
-  data: {
-    type,
-    title,
-    amount,
-    date,
-    paymentMethod,
-    expenseScope,
-    paidBy,
-    doneFor,
-    notes,
-    isBillable,
-    isReimbursed,
-    categoryId,
-    clientId,
-    projectId,
-    createdById: user.id,
-    attachments: attachment
-      ? {
-          create: {
-            fileName: attachment.fileName,
-            fileUrl: attachment.fileUrl,
-            fileType: attachment.fileType,
-            fileSize: attachment.fileSize,
-            attachmentType: "RECEIPT",
+    let salaryEmployee: { id: string; fullName: string } | null = null;
+    let salaryNetPay: number | null = null;
+
+    if (isSalaryExpense) {
+      if (type !== TransactionType.EXPENSE || expenseScope !== ExpenseScope.COMPANY) {
+        return NextResponse.json(
+          { message: "Salary expense must be a company expense." },
+          { status: 400 }
+        );
+      }
+
+      if (!salaryEmployeeId) {
+        return NextResponse.json(
+          { message: "Employee is required for salary expense." },
+          { status: 400 }
+        );
+      }
+
+      if (!salaryMonth || salaryMonth < 1 || salaryMonth > 12) {
+        return NextResponse.json(
+          { message: "Valid salary month is required." },
+          { status: 400 }
+        );
+      }
+
+      if (!salaryYear || salaryYear < 2000) {
+        return NextResponse.json(
+          { message: "Valid salary year is required." },
+          { status: 400 }
+        );
+      }
+
+      if (
+        Number.isNaN(salaryBasicSalary) ||
+        salaryBasicSalary < 0 ||
+        Number.isNaN(salaryBonus) ||
+        salaryBonus < 0 ||
+        Number.isNaN(salaryDeduction) ||
+        salaryDeduction < 0
+      ) {
+        return NextResponse.json(
+          { message: "Salary amounts must be valid positive numbers." },
+          { status: 400 }
+        );
+      }
+
+      salaryNetPay = salaryBasicSalary + salaryBonus - salaryDeduction;
+
+      if (salaryNetPay !== amount) {
+        return NextResponse.json(
+          {
+            message:
+              "Transaction amount must match salary net pay. Basic salary + bonus - deduction should equal transaction amount.",
           },
-        }
-      : undefined,
-  },
-  include: {
-    category: true,
-    client: true,
-    project: true,
-    attachments: true,
-  },
-});
+          { status: 400 }
+        );
+      }
+
+      salaryEmployee = await prisma.employee.findUnique({
+        where: {
+          id: salaryEmployeeId,
+        },
+        select: {
+          id: true,
+          fullName: true,
+        },
+      });
+
+      if (!salaryEmployee) {
+        return NextResponse.json(
+          { message: "Employee not found for salary expense." },
+          { status: 404 }
+        );
+      }
+
+      const existingPayroll = await prisma.payrollRecord.findFirst({
+        where: {
+          employeeId: salaryEmployeeId,
+          month: salaryMonth,
+          year: salaryYear,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (existingPayroll) {
+        return NextResponse.json(
+          {
+            message:
+              "Payroll already exists for this employee, month, and year.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const transaction = await prisma.$transaction(async (tx) => {
+      const createdTransaction = await tx.transaction.create({
+        data: {
+          type,
+          title:
+            title ||
+            (isSalaryExpense && salaryEmployee
+              ? `Salary Payment - ${salaryEmployee.fullName} - ${salaryMonth}/${salaryYear}`
+              : doneFor || "Untitled Transaction"),
+          amount,
+          date,
+          paymentMethod,
+          expenseScope,
+          paidBy,
+          doneFor:
+            doneFor ||
+            (isSalaryExpense && salaryEmployee ? salaryEmployee.fullName : null),
+          notes,
+          isBillable,
+          isReimbursed,
+          categoryId,
+          clientId,
+          projectId,
+          createdById: user.id,
+          attachments: attachment
+            ? {
+              create: {
+                fileName: attachment.fileName,
+                fileUrl: attachment.fileUrl,
+                fileType: attachment.fileType,
+                fileSize: attachment.fileSize,
+                attachmentType: "RECEIPT",
+              },
+            }
+            : undefined,
+        },
+        include: {
+          category: true,
+          client: true,
+          project: true,
+          attachments: true,
+        },
+      });
+
+      if (
+        isSalaryExpense &&
+        salaryEmployeeId &&
+        salaryMonth &&
+        salaryYear &&
+        salaryNetPay !== null
+      ) {
+        await tx.payrollRecord.create({
+          data: {
+            employeeId: salaryEmployeeId,
+            month: salaryMonth,
+            year: salaryYear,
+            basicSalary: salaryBasicSalary,
+            bonus: salaryBonus,
+            deduction: salaryDeduction,
+            netPay: salaryNetPay,
+            paymentDate: date,
+            paymentMethod,
+            status: PayrollStatus.PAID,
+            notes:
+              notes ||
+              `Created from salary expense transaction: ${createdTransaction.title}`,
+            transactionId: createdTransaction.id,
+          },
+        });
+      }
+
+      return createdTransaction;
+    });
 
     await createActivityLog({
       action: "CREATE",

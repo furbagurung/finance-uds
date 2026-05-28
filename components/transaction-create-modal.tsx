@@ -64,19 +64,12 @@ export function TransactionCreateModal({
               This popup keeps transaction creation inside the current page.
               Form logic still lives in components/transaction-form.tsx.
           */}
-                    <div className="relative z-10 flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20">
+                    <div className="relative max-h-[88vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20">
                         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
-                            <div>
-                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                                    Finance Entry
-                                </p>
-                                <h2 className="mt-1 text-xl font-bold text-slate-950">
+                            <div className="border-b border-slate-100 px-6 py-4">
+                                <h2 className="text-xl font-bold text-slate-950">
                                     Add Transaction
                                 </h2>
-                                <p className="mt-1 text-sm text-slate-500">
-                                    Record income, expense, investment, withdrawal, or client
-                                    transaction without leaving this page.
-                                </p>
                             </div>
 
                             <button
