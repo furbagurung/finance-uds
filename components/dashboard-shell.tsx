@@ -2,36 +2,51 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
 import {
   createContext,
   useContext,
   useEffect,
   useState,
+  useRef,
   type ReactNode,
 } from "react";
 import {
   Activity,
-  LayoutDashboard,
-  Wallet,
-  Tags,
-  Users,
-  BriefcaseBusiness,
+  ArrowUpRight,
   BarChart3,
+  BriefcaseBusiness,
+  ChevronRight,
   DatabaseBackup,
+  LayoutDashboard,
   PanelLeftClose,
   PanelLeftOpen,
-  Settings,
-  Search,
   Plus,
   ReceiptText,
+  Search,
+  Settings,
+  Tags,
+  UserCircle2,
   UserPlus,
-  ArrowUpRight,
+  Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
+type SidebarNavEntry = {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  adminOnly?: boolean;
+};
+
+type SidebarSection = {
+  label: string;
+  items: SidebarNavEntry[];
+};
 
 type SidebarContextValue = {
   expanded: boolean;
@@ -49,59 +64,75 @@ function useSidebar() {
   return context;
 }
 
-const navItems = [
+// SIDEBAR NAVIGATION SECTIONS
+// Edit this array to add, remove, or regroup sidebar items.
+const sidebarSections: SidebarSection[] = [
   {
-    title: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
+    label: "MAIN",
+    items: [
+      {
+        title: "Dashboard",
+        href: "/dashboard",
+        icon: LayoutDashboard,
+      },
+    ],
   },
   {
-    title: "Transactions",
-    href: "/transactions",
-    icon: Wallet,
+    label: "FINANCE",
+    items: [
+      {
+        title: "Transactions",
+        href: "/transactions",
+        icon: Wallet,
+      },
+      {
+        title: "Categories",
+        href: "/categories",
+        icon: Tags,
+      },
+      {
+        title: "Reports",
+        href: "/reports",
+        icon: BarChart3,
+      },
+    ],
   },
   {
-    title: "Categories",
-    href: "/categories",
-    icon: Tags,
+    label: "CRM",
+    items: [
+      {
+        title: "Clients",
+        href: "/clients",
+        icon: Users,
+      },
+      {
+        title: "Projects",
+        href: "/projects",
+        icon: BriefcaseBusiness,
+      },
+    ],
   },
   {
-    title: "Clients",
-    href: "/clients",
-    icon: Users,
+    label: "TEAM",
+    items: [
+      {
+        title: "Users",
+        href: "/users",
+        icon: Users,
+        adminOnly: true,
+      },
+    ],
   },
   {
-    title: "Projects",
-    href: "/projects",
-    icon: BriefcaseBusiness,
-  },
-  {
-    title: "Reports",
-    href: "/reports",
-    icon: BarChart3,
-  },
-  {
-    title: "Activity Logs",
-    href: "/activity",
-    icon: Activity,
-    adminOnly: true,
-  },
-  {
-    title: "Users",
-    href: "/users",
-    icon: Users,
-    adminOnly: true,
-  },
-  {
-    title: "Backup",
-    href: "/backup",
-    icon: DatabaseBackup,
-    adminOnly: true,
-  },
-  {
-    title: "Settings",
-    href: "/settings",
-    icon: Settings,
+    label: "SYSTEM",
+    items: [
+      {
+        title: "Backup",
+        href: "/backup",
+        icon: DatabaseBackup,
+        adminOnly: true,
+      },
+    ],
   },
 ];
 
@@ -184,12 +215,43 @@ function SidebarNavItem({
 export function DashboardShell({ children, user }: DashboardShellProps) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(true);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
+
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        accountMenuRef.current &&
+        !accountMenuRef.current.contains(event.target as Node)
+      ) {
+        setAccountMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setAccountMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [accountMenuOpen]);
+
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const isMacShortcut = event.metaKey && event.key.toLowerCase() === "k";
       const isWindowsShortcut =
-  event.ctrlKey && event.key.toLowerCase() === "k";
+        event.ctrlKey && event.key.toLowerCase() === "k";
 
       if (isMacShortcut || isWindowsShortcut) {
         event.preventDefault();
@@ -251,7 +313,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
               <button
                 type="button"
                 onClick={() => setExpanded((current) => !current)}
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-all duration-300 ease-in-out hover:bg-slate-50 hover:text-slate-950"
+                className="flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-all duration-300 ease-in-out hover:bg-slate-50 hover:text-slate-950"
                 aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
                 title={expanded ? "Collapse sidebar" : "Expand sidebar"}
               >
@@ -267,27 +329,178 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
 
             <nav
               className={cn(
-                "space-y-1.5 overflow-visible transition-all duration-300 ease-in-out",
-                expanded ? "" : "flex flex-col items-start",
+                "overflow-visible transition-all duration-300 ease-in-out",
+                expanded ? "space-y-5" : "flex flex-col items-center gap-3",
               )}
             >
-              {navItems
-                .filter((item) => !item.adminOnly || user.role === "ADMIN")
-                .map((item) => {
-                  const isActive =
-                    pathname === item.href || pathname.startsWith(`${item.href}/`);
+              {sidebarSections.map((section) => {
+                const visibleItems = section.items.filter(
+                  (item) => !item.adminOnly || user.role === "ADMIN",
+                );
 
-                  return (
-                    <SidebarNavItem
-                      key={item.href}
-                      href={item.href}
-                      icon={item.icon}
-                      isActive={isActive}
-                      title={item.title}
-                    />
-                  );
-                })}
+                if (visibleItems.length === 0) {
+                  return null;
+                }
+
+                return (
+                  <div
+                    key={section.label}
+                    className={cn(
+                      "w-full",
+                      expanded ? "space-y-1.5" : "flex flex-col items-center gap-2",
+                    )}
+                  >
+                    {expanded ? (
+                      <p className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                        {section.label}
+                      </p>
+                    ) : null}
+
+                    <div
+                      className={cn(
+                        expanded ? "space-y-1.5" : "flex flex-col items-center gap-2",
+                      )}
+                    >
+                      {visibleItems.map((item) => {
+                        const isActive =
+                          pathname === item.href ||
+                          pathname.startsWith(`${item.href}/`);
+
+                        return (
+                          <SidebarNavItem
+                            key={item.href}
+                            href={item.href}
+                            icon={item.icon}
+                            isActive={isActive}
+                            title={item.title}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </nav>
+            {/* SIDEBAR ACCOUNT AREA
+    SaaS-style clickable profile card at the bottom of the sidebar.
+    Click to open account menu with settings and logout.
+*/}
+            <div className="relative mt-auto" ref={accountMenuRef}>
+              <Separator className="mb-4 mt-5 bg-slate-100" />
+
+              {accountMenuOpen ? (
+                <div
+                  className={cn(
+                    "absolute bottom-4 z-50 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/12",
+                    expanded ? "left-[calc(100%+0.75rem)]" : "left-16",
+                  )}
+                >
+                  <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-bold text-yellow-400 shadow-sm">
+                      {user.name?.charAt(0) ?? "U"}
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-slate-950">
+                        {user.name}
+                      </p>
+                      <p className="truncate text-xs font-medium text-slate-500">
+                        {user.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-2">
+                    <Link
+                      href="/settings"
+                      onClick={() => setAccountMenuOpen(false)}
+                      className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                    >
+                      <UserCircle2 className="h-4 w-4 text-slate-400" />
+                      Account Settings
+                    </Link>
+
+                    <Link
+                      href="/activity"
+                      onClick={() => setAccountMenuOpen(false)}
+                      className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                    >
+                      <Activity className="h-4 w-4 text-slate-400" />
+                      Activity Logs
+                    </Link>
+
+                    <Link
+                      href="/settings"
+                      onClick={() => setAccountMenuOpen(false)}
+                      className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                    >
+                      <Settings className="h-4 w-4 text-slate-400" />
+                      Workspace Settings
+                    </Link>
+
+                    <div className="my-2 h-px bg-slate-100" />
+
+                    <div className="[&>button]:flex [&>button]:w-full [&>button]:cursor-pointer [&>button]:items-center [&>button]:justify-start [&>button]:rounded-xl [&>button]:border-0 [&>button]:bg-transparent [&>button]:px-3 [&>button]:py-2.5 [&>button]:text-left [&>button]:text-sm [&>button]:font-semibold [&>button]:text-red-600 [&>button]:shadow-none [&>button]:transition [&>button]:hover:bg-red-50">
+                      <LogoutButton />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() => setAccountMenuOpen((current) => !current)}
+                className={cn(
+                  "group cursor-pointer border border-slate-200 bg-white shadow-sm transition-colors duration-200 ease-in-out hover:border-slate-300 hover:bg-slate-50",
+                  accountMenuOpen ? "border-slate-300 bg-slate-50" : "",
+                  expanded
+                    ? "w-full rounded-md p-3"
+                    : "mx-auto flex h-12 w-12 items-center justify-center rounded-full p-0",
+                )}
+                aria-expanded={accountMenuOpen}
+                aria-label="Open account menu"
+              >
+                <div
+                  className={cn(
+                    "flex items-center transition-all duration-300 ease-in-out",
+                    expanded ? "gap-3" : "justify-center",
+                  )}
+                >
+                  <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-bold text-yellow-400 shadow-sm">
+                    {user.name?.charAt(0) ?? "U"}
+
+                    <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+                  </div>
+
+                  <div
+                    className={cn(
+                      "min-w-0 flex-1 overflow-hidden text-left transition-all duration-300 ease-in-out",
+                      expanded ? "max-w-44 opacity-100 delay-100" : "max-w-0 opacity-0",
+                    )}
+                  >
+                    <p className="truncate text-sm font-bold text-slate-950">
+                      {user.name}
+                    </p>
+
+                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Account menu
+                    </p>
+                  </div>
+                  <div
+                    className={cn(
+                      "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors duration-200 group-hover:bg-slate-100 group-hover:text-slate-700",
+                      accountMenuOpen ? "bg-slate-100 text-slate-700" : "",
+                      expanded ? "opacity-100 delay-100" : "hidden opacity-0",
+                    )}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </div>
+
+                </div>
+
+              </button>
+
+            </div>
           </div>
         </SidebarContext.Provider>
       </aside>
@@ -324,26 +537,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
               </button>
             </div>
 
-            <div className="col-start-3 flex shrink-0 items-center justify-end gap-3">
-              <Badge
-                variant="secondary"
-                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600"
-              >
-                {user.role}
-              </Badge>
-
-              <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm sm:flex">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-xs font-bold text-yellow-400">
-                  {user.name?.charAt(0) ?? "U"}
-                </div>
-
-                <p className="max-w-32 truncate text-xs font-semibold text-slate-950">
-                  {user.name}
-                </p>
-              </div>
-
-              <LogoutButton />
-            </div>
+            <div className="col-start-3 flex shrink-0 items-center justify-end" />
           </div>
         </header>
 

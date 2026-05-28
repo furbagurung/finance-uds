@@ -35,7 +35,31 @@ const projectStatuses: ProjectStatus[] = [
   "CANCELLED",
 ];
 
-export function ProjectForm() {
+type ProjectFormProps = {
+  /**
+   * page  = normal full page form
+   * modal = form used inside popup modal
+   */
+  mode?: "page" | "modal";
+
+  /**
+   * Runs after successful project creation.
+   * Useful for closing modal from parent component.
+   */
+  onSuccess?: () => void;
+
+  /**
+   * Runs when cancel is clicked.
+   * Useful for closing modal instead of redirecting.
+   */
+  onCancel?: () => void;
+};
+
+export function ProjectForm({
+  mode = "page",
+  onSuccess,
+  onCancel,
+}: ProjectFormProps) {
   const router = useRouter();
 
   const [clients, setClients] = useState<Client[]>([]);
@@ -90,8 +114,14 @@ export function ProjectForm() {
         return;
       }
 
-      router.push("/projects");
-      router.refresh();
+     if (mode === "modal") {
+  router.refresh();
+  onSuccess?.();
+  return;
+}
+
+router.push("/projects");
+router.refresh();
     } catch {
       setError("Something went wrong while creating project.");
     } finally {
@@ -195,13 +225,20 @@ export function ProjectForm() {
           ) : null}
 
           <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push("/projects")}
-            >
-              Cancel
-            </Button>
+          <Button
+  type="button"
+  variant="outline"
+  onClick={() => {
+    if (mode === "modal") {
+      onCancel?.();
+      return;
+    }
+
+    router.push("/projects");
+  }}
+>
+  Cancel
+</Button>
 
             <Button type="submit" disabled={loading}>
               {loading ? "Saving..." : "Save Project"}

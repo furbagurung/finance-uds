@@ -59,7 +59,7 @@ export default async function ClientsPage() {
 */}
           <ClientCreateModal
             triggerLabel="Add Client"
-            triggerClassName="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+          triggerClassName="h-10 cursor-pointer rounded-full bg-slate-950 px-5 text-sm font-semibold text-white shadow-md shadow-slate-900/15 transition hover:bg-slate-800"
           />
         </div>
 

@@ -223,27 +223,25 @@ export default async function DashboardPage() {
             Welcome back, {user.name}
           </h1>
 
-
           {/* DASHBOARD QUICK ACTIONS
-    Transaction actions open premium modals.
-    Client action will be converted to modal in the next step after checking client-form.tsx.
+    Soft premium pill buttons inspired by SaaS action buttons.
 */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <TransactionCreateModal
               defaultType="INCOME"
               triggerLabel="Add Income"
-              triggerClassName="rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+             triggerClassName="h-10 cursor-pointer rounded-full border border-emerald-100 bg-emerald-50 px-5 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100"
             />
 
             <TransactionCreateModal
               defaultType="EXPENSE"
               triggerLabel="Add Expense"
-              triggerClassName="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              triggerClassName="h-10 cursor-pointer rounded-full border border-rose-100 bg-rose-50 px-5 text-sm font-semibold text-rose-700 shadow-sm transition hover:bg-rose-100"
             />
 
             <ClientCreateModal
               triggerLabel="Add Client"
-              triggerClassName="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            triggerClassName="h-10 cursor-pointer rounded-full bg-slate-950 px-5 text-sm font-semibold text-white shadow-md shadow-slate-900/15 transition hover:bg-slate-800"
             />
           </div>
         </div>

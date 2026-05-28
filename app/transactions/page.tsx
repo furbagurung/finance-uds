@@ -197,18 +197,18 @@ export default async function TransactionsPage({
             <TransactionCreateModal
               defaultType="INCOME"
               triggerLabel="Add Income"
-              triggerClassName="rounded-xl bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
-            />
-
+             triggerClassName="h-10 cursor-pointer rounded-full border border-emerald-100 bg-emerald-50 px-5 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100"
+/>
             <TransactionCreateModal
               defaultType="EXPENSE"
               triggerLabel="Add Expense"
-              triggerClassName="rounded-xl bg-slate-950 text-white shadow-sm hover:bg-slate-800"
+triggerClassName="h-10 cursor-pointer rounded-full border border-rose-100 bg-rose-50 px-5 text-sm font-semibold text-rose-700 shadow-sm transition hover:bg-rose-100"
+
             />
 
             <TransactionCreateModal
               triggerLabel="Add Transaction"
-              triggerClassName="rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+triggerClassName="h-10 cursor-pointer rounded-full bg-slate-950 px-5 text-sm font-semibold text-white shadow-md shadow-slate-900/15 transition hover:bg-slate-800"
             />
           </div>
         </div>
@@ -333,7 +333,7 @@ export default async function TransactionsPage({
                 </p>
                 <TransactionCreateModal
                   triggerLabel="Add Transaction"
-                  triggerClassName="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+triggerClassName="mt-4 h-10 cursor-pointer rounded-full bg-slate-950 px-5 text-sm font-semibold text-white shadow-md shadow-slate-900/15 transition hover:bg-slate-800"
                 />
               </div>
             ) : (

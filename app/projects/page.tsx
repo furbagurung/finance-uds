@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ProjectCreateModal } from "@/components/project-create-modal";
 import {
   Card,
   CardContent,
@@ -67,9 +67,14 @@ export default async function ProjectsPage() {
             </p>
           </div>
 
-          <Button asChild>
-            <Link href="/projects/new">Add Project</Link>
-          </Button>
+         {/* PROJECT QUICK ACTION
+    Add Project now opens a premium modal.
+    The old /projects/new page still exists as fallback.
+*/}
+<ProjectCreateModal
+  triggerLabel="Add Project"
+  triggerClassName="h-10 cursor-pointer rounded-full bg-slate-950 px-5 text-sm font-semibold text-white shadow-md shadow-slate-900/15 transition hover:bg-slate-800"
+/>
         </div>
 
         <Card>
