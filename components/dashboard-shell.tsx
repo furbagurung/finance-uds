@@ -18,6 +18,7 @@ import {
   BriefcaseBusiness,
   ChevronRight,
   DatabaseBackup,
+  IdCard,
   LayoutDashboard,
   PanelLeftClose,
   PanelLeftOpen,
@@ -113,16 +114,22 @@ const sidebarSections: SidebarSection[] = [
     ],
   },
   {
-    label: "TEAM",
-    items: [
-      {
-        title: "Users",
-        href: "/users",
-        icon: Users,
-        adminOnly: true,
-      },
-    ],
-  },
+  label: "TEAM",
+  items: [
+    {
+      title: "Users",
+      href: "/users",
+      icon: Users,
+      adminOnly: true,
+    },
+    {
+      title: "Employees",
+      href: "/employees",
+      icon: IdCard,
+      adminOnly: true,
+    },
+  ],
+},
   {
     label: "SYSTEM",
     items: [
