@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/require-admin";
+import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -156,9 +157,9 @@ export default async function EmployeesPage() {
                       <TableCell>{formatDate(employee.joiningDate)}</TableCell>
 
                       <TableCell>
-                        <Button variant="outline" size="sm" disabled>
-                          View
-                        </Button>
+                        <Button asChild variant="outline" size="sm">
+  <Link href={`/employees/${employee.id}`}>View</Link>
+</Button>
                       </TableCell>
                     </TableRow>
                   ))
