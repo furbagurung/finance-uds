@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { TransactionType, type Prisma } from "@prisma/client";
 import {
   Archive,
   FileDown,
@@ -13,60 +13,24 @@ import {
 import { DashboardShell } from "@/components/dashboard-shell";
 import { TransactionFilters } from "@/components/transaction-filters";
 import { TransactionCreateModal } from "@/components/transaction-create-modal";
+import { TransactionsTable } from "@/components/transactions-table";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
 function formatCurrency(amount: unknown) {
-  return `Rs. ${Number(amount).toLocaleString("en-IN")}`;
+  const value = Number(amount);
+  const formattedValue = new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 2,
+  }).format(Number.isFinite(value) ? value : 0);
+
+  return `Rs. ${formattedValue}`;
 }
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("en-NP", {
     dateStyle: "medium",
   }).format(date);
-}
-
-function getTypeBadgeClass(type: string) {
-  if (type === "INCOME") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100/60";
-  }
-
-  if (type === "EXPENSE") {
-    return "border-rose-200 bg-rose-50 text-rose-700 shadow-sm shadow-rose-100/60";
-  }
-
-  if (type === "INVESTMENT") {
-    return "border-slate-800 bg-slate-950 text-white shadow-sm shadow-slate-200/70";
-  }
-
-  return "border-slate-200 bg-slate-100 text-slate-700 shadow-sm shadow-slate-100/70";
-}
-
-function getAmountClass(type: string) {
-  if (type === "INCOME") {
-    return "text-emerald-700";
-  }
-
-  if (type === "EXPENSE") {
-    return "text-rose-700";
-  }
-
-  if (type === "WITHDRAWAL") {
-    return "text-slate-500";
-  }
-
-  return "text-slate-800";
 }
 
 type TransactionsPageProps = {
@@ -76,8 +40,22 @@ type TransactionsPageProps = {
     projectId?: string;
     from?: string;
     to?: string;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+    q?: string;
   }>;
 };
+
+function getSelectedTransactionType(type?: string) {
+  if (!type || type === "ALL") {
+    return "";
+  }
+
+  return Object.values(TransactionType).includes(type as TransactionType)
+    ? (type as TransactionType)
+    : "";
+}
 
 export default async function TransactionsPage({
   searchParams,
@@ -89,18 +67,32 @@ export default async function TransactionsPage({
     redirect("/login");
   }
 
-  const selectedType = params.type && params.type !== "ALL" ? params.type : "";
+  const selectedType = getSelectedTransactionType(params.type);
   const selectedClientId =
     params.clientId && params.clientId !== "ALL" ? params.clientId : "";
   const selectedProjectId =
     params.projectId && params.projectId !== "ALL" ? params.projectId : "";
-  const fromDate = params.from || "";
-  const toDate = params.to || "";
+  const fromDate = params.startDate || params.from || "";
+  const toDate = params.endDate || params.to || "";
+  const searchQuery = (params.q || params.search || "").trim();
 
-  const transactionWhere = {
-    ...(selectedType ? { type: selectedType as never } : {}),
+  const transactionWhere: Prisma.TransactionWhereInput = {
+    ...(selectedType ? { type: selectedType } : {}),
     ...(selectedClientId ? { clientId: selectedClientId } : {}),
     ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
+    ...(searchQuery
+      ? {
+          OR: [
+            { title: { contains: searchQuery } },
+            { doneFor: { contains: searchQuery } },
+            { paidBy: { contains: searchQuery } },
+            { client: { name: { contains: searchQuery } } },
+            { client: { companyName: { contains: searchQuery } } },
+            { project: { name: { contains: searchQuery } } },
+            { category: { name: { contains: searchQuery } } },
+          ],
+        }
+      : {}),
     ...(fromDate || toDate
       ? {
         date: {
@@ -119,8 +111,27 @@ export default async function TransactionsPage({
     include: {
       category: true,
       client: true,
-      project: true,
+      project: {
+        include: {
+          client: {
+            select: {
+              name: true,
+              companyName: true,
+              logoUrl: true,
+            },
+          },
+        },
+      },
       attachments: true,
+      payrollRecord: {
+        include: {
+          employee: {
+            select: {
+              fullName: true,
+            },
+          },
+        },
+      },
       createdBy: {
         select: {
           name: true,
@@ -173,11 +184,36 @@ export default async function TransactionsPage({
     ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
     ...(fromDate ? { from: fromDate } : {}),
     ...(toDate ? { to: toDate } : {}),
+    ...(searchQuery ? { search: searchQuery } : {}),
   }).toString();
+
+  const transactionTableItems = transactions.map((transaction) => ({
+    id: transaction.id,
+    dateLabel: formatDate(transaction.date),
+    type: transaction.type,
+    clientName:
+      transaction.client?.name ||
+      transaction.project?.client?.companyName ||
+      transaction.project?.client?.name ||
+      null,
+    clientLogoUrl:
+      transaction.client?.logoUrl || transaction.project?.client?.logoUrl || null,
+    employeeName: transaction.payrollRecord?.employee.fullName || null,
+    projectName: transaction.project?.name || null,
+    doneFor: transaction.doneFor,
+    title: transaction.title,
+    categoryName: transaction.category?.name || null,
+    paymentMethod: transaction.paymentMethod,
+    amountLabel: formatCurrency(transaction.amount),
+    attachments: transaction.attachments.map((attachment) => ({
+      id: attachment.id,
+      fileUrl: attachment.fileUrl,
+    })),
+  }));
 
   return (
     <DashboardShell user={user}>
-      <div className="mx-auto w-full max-w-[1220px] space-y-7">
+      <div className="mx-auto w-full max-w-[1440px] space-y-7">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
@@ -310,7 +346,7 @@ triggerClassName="h-10 cursor-pointer rounded-full bg-slate-950 px-5 text-sm fon
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
           <TransactionFilters
             clients={clients}
             projects={projects}
@@ -319,6 +355,7 @@ triggerClassName="h-10 cursor-pointer rounded-full bg-slate-950 px-5 text-sm fon
             selectedProjectId={selectedProjectId}
             fromDate={fromDate}
             toDate={toDate}
+            searchQuery={searchQuery}
           />
 
           <div>
@@ -338,144 +375,11 @@ triggerClassName="mt-4 h-10 cursor-pointer rounded-full bg-slate-950 px-5 text-s
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-slate-100 bg-slate-50/80 hover:bg-slate-50/80">
-                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        Date
-                      </TableHead>
-                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        Type
-                      </TableHead>
-                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        Paid By
-                      </TableHead>
-                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        Client
-                      </TableHead>
-                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        Project
-                      </TableHead>
-                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        Done For
-                      </TableHead>
-                      <TableHead className="h-11 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        Scope
-                      </TableHead>
-                      <TableHead className="h-11 text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        Amount
-                      </TableHead>
-                      <TableHead className="h-11 text-right text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        Receipt
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-
-                  <TableBody>
-                    {transactions.map((transaction) => (
-                      <TableRow
-                        key={transaction.id}
-                        className="border-slate-100 transition-colors hover:bg-slate-50"
-                      >
-                        <TableCell className="whitespace-nowrap py-5 text-sm font-medium text-slate-600">
-                          {formatDate(transaction.date)}
-                        </TableCell>
-
-                        <TableCell className="py-5">
-                          <Badge
-                            variant="outline"
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide ${getTypeBadgeClass(
-                              transaction.type,
-                            )}`}
-                          >
-                            {transaction.type}
-                          </Badge>
-                        </TableCell>
-
-                        <TableCell className="max-w-[180px] truncate py-5 text-sm text-slate-600">
-                          {transaction.paidBy || "-"}
-                        </TableCell>
-
-                        <TableCell className="max-w-[180px] truncate py-5 text-sm text-slate-600">
-                          {transaction.client?.name || "-"}
-                        </TableCell>
-
-                        <TableCell className="max-w-[180px] truncate py-5 text-sm text-slate-600">
-                          {transaction.project?.name || "-"}
-                        </TableCell>
-
-                        <TableCell className="min-w-[220px] py-5">
-                          <Link
-                            href={`/transactions/${transaction.id}`}
-                            className="font-medium text-slate-950 hover:text-slate-700 hover:underline"
-                          >
-                            {transaction.doneFor || transaction.title}
-                          </Link>
-
-                          {transaction.category ? (
-                            <p className="mt-0.5 text-xs text-slate-500">
-                              {transaction.category.name}
-                            </p>
-                          ) : null}
-                        </TableCell>
-
-                        <TableCell className="py-5">
-                          {transaction.expenseScope ? (
-                            <Badge
-                              variant="secondary"
-                              className="rounded-full bg-slate-100 text-slate-700"
-                            >
-                              {transaction.expenseScope}
-                            </Badge>
-                          ) : (
-                            <span className="text-sm text-slate-400">-</span>
-                          )}
-                        </TableCell>
-
-                        <TableCell
-                          className={`py-5 text-right font-bold ${getAmountClass(
-                            transaction.type,
-                          )}`}
-                        >
-                          {formatCurrency(transaction.amount)}
-                        </TableCell>
-
-                        <TableCell className="py-5 text-right">
-                          {transaction.attachments.length > 0 ? (
-                            <div className="flex justify-end gap-2">
-                              {transaction.attachments
-                                .slice(0, 2)
-                                .map((attachment) => (
-                                  <Link
-                                    key={attachment.id}
-                                    href={attachment.fileUrl}
-                                    target="_blank"
-                                    className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
-                                  >
-                                    View file
-                                  </Link>
-                                ))}
-
-                              {transaction.attachments.length > 2 ? (
-                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                                  +{transaction.attachments.length - 2}
-                                </span>
-                              ) : null}
-                            </div>
-                          ) : (
-                            <span className="text-xs font-medium text-slate-400">
-                              No file
-                            </span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <TransactionsTable transactions={transactionTableItems} />
               </div>
             )}
 
-            <div className="flex flex-col gap-2 border-t border-slate-100 bg-white px-5 py-4 text-xs font-medium text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 rounded-b-2xl border-t border-slate-100 bg-white px-5 py-4 text-xs font-medium text-slate-500 sm:flex-row sm:items-center sm:justify-between">
               <span>
                 Showing {transactions.length} records of {transactions.length} total
                 transactions
