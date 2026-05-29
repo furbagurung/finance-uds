@@ -12,12 +12,20 @@ type TransactionCreateModalProps = {
     triggerClassName?: string;
 };
 
+const modalTitles: Record<string, string> = {
+    INCOME: "Add Income",
+    EXPENSE: "Add Expense",
+    INVESTMENT: "Add Investment",
+    WITHDRAWAL: "Add Withdrawal",
+};
+
 export function TransactionCreateModal({
     defaultType,
     triggerLabel = "Add Transaction",
     triggerClassName,
 }: TransactionCreateModalProps) {
     const [open, setOpen] = useState(false);
+    const title = defaultType ? modalTitles[defaultType] : "Add Transaction";
 
     useEffect(() => {
         if (!open) return;
@@ -50,39 +58,30 @@ export function TransactionCreateModal({
 
             {open ? (
                 <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
-                    {/* MODAL BACKDROP
-              Edit this block if you want darker/lighter overlay.
-          */}
                     <button
                         type="button"
                         aria-label="Close transaction modal"
-                        className="absolute inset-0 bg-slate-950/35 backdrop-blur-[2px]"
+                        className="absolute inset-0 z-0 bg-slate-950/35 backdrop-blur-sm"
                         onClick={() => setOpen(false)}
                     />
 
-                    {/* TRANSACTION CREATE MODAL
-              This popup keeps transaction creation inside the current page.
-              Form logic still lives in components/transaction-form.tsx.
-          */}
-                    <div className="relative max-h-[88vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20">
-                        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
-                            <div className="border-b border-slate-100 px-6 py-4">
-                                <h2 className="text-xl font-bold text-slate-950">
-                                    Add Transaction
-                                </h2>
-                            </div>
+                    <div className="isolate relative z-10 flex max-h-[92dvh] w-full max-w-xl flex-col overflow-visible rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/15">
+                        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                            <h2 className="text-lg font-semibold text-slate-950">
+                                {title || "Add Transaction"}
+                            </h2>
 
                             <button
                                 type="button"
                                 onClick={() => setOpen(false)}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
                                 aria-label="Close modal"
                             >
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
 
-                        <div className="overflow-y-auto bg-slate-50/60 px-6 py-5">
+                        <div className="min-h-0 overflow-visible rounded-b-2xl bg-white">
                             <TransactionForm
                                 defaultType={defaultType}
                                 mode="modal"

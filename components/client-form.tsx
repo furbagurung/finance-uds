@@ -32,7 +32,23 @@ type ClientFormInitialData = {
   industry: string | null;
   notes: string | null;
 };
-
+type CreatedClient = {
+  id: string;
+  name: string;
+  companyName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  logoUrl?: string | null;
+  website?: string | null;
+  facebookUrl?: string | null;
+  instagramUrl?: string | null;
+  tiktokUrl?: string | null;
+  linkedinUrl?: string | null;
+  youtubeUrl?: string | null;
+  industry?: string | null;
+  notes?: string | null;
+};
 type ClientFormProps = {
   initialData?: ClientFormInitialData;
 
@@ -49,6 +65,12 @@ type ClientFormProps = {
   onSuccess?: () => void;
 
   /**
+   * Runs with the newly created/updated client.
+   * Useful for refreshing dropdown and auto-selecting the new client.
+   */
+  onCreated?: (client: CreatedClient) => void;
+
+  /**
    * Runs when cancel is clicked.
    * Useful for closing modal instead of redirecting.
    */
@@ -58,6 +80,7 @@ export function ClientForm({
   initialData,
   mode = "page",
   onSuccess,
+  onCreated,
   onCancel,
 }: ClientFormProps) {
   const router = useRouter();
@@ -154,12 +177,15 @@ export function ClientForm({
         return;
       }
 
-      if (mode === "modal") {
-        router.refresh();
-        onSuccess?.();
-        return;
-      }
+     if (mode === "modal") {
+  if (data.client) {
+    onCreated?.(data.client);
+  }
 
+  router.refresh();
+  onSuccess?.();
+  return;
+}
       router.push(isEditing ? `/clients/${initialData?.id}` : "/clients");
       router.refresh();
     } catch {

@@ -35,36 +35,44 @@ const projectStatuses: ProjectStatus[] = [
   "CANCELLED",
 ];
 
+type CreatedProject = {
+  id: string;
+  name: string;
+  clientId?: string | null;
+  client?: Client | null;
+};
+
 type ProjectFormProps = {
-  /**
-   * page  = normal full page form
-   * modal = form used inside popup modal
-   */
   mode?: "page" | "modal";
 
   /**
-   * Runs after successful project creation.
-   * Useful for closing modal from parent component.
+   * Preselects client when creating project from transaction form.
    */
+  defaultClientId?: string;
+
   onSuccess?: () => void;
 
   /**
-   * Runs when cancel is clicked.
-   * Useful for closing modal instead of redirecting.
+   * Runs with the newly created project.
+   * Useful for refreshing dropdown and auto-selecting the new project.
    */
+  onCreated?: (project: CreatedProject) => void;
+
   onCancel?: () => void;
 };
 
 export function ProjectForm({
   mode = "page",
+  defaultClientId = "",
   onSuccess,
+  onCreated,
   onCancel,
 }: ProjectFormProps) {
   const router = useRouter();
 
   const [clients, setClients] = useState<Client[]>([]);
   const [name, setName] = useState("");
-  const [clientId, setClientId] = useState("");
+  const [clientId, setClientId] = useState(defaultClientId);
   const [budget, setBudget] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -114,14 +122,18 @@ export function ProjectForm({
         return;
       }
 
-     if (mode === "modal") {
-  router.refresh();
-  onSuccess?.();
-  return;
-}
+      if (mode === "modal") {
+        if (data.project) {
+          onCreated?.(data.project);
+        }
 
-router.push("/projects");
-router.refresh();
+        router.refresh();
+        onSuccess?.();
+        return;
+      }
+
+      router.push("/projects");
+      router.refresh();
     } catch {
       setError("Something went wrong while creating project.");
     } finally {
@@ -225,20 +237,20 @@ router.refresh();
           ) : null}
 
           <div className="flex justify-end gap-3">
-          <Button
-  type="button"
-  variant="outline"
-  onClick={() => {
-    if (mode === "modal") {
-      onCancel?.();
-      return;
-    }
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (mode === "modal") {
+                  onCancel?.();
+                  return;
+                }
 
-    router.push("/projects");
-  }}
->
-  Cancel
-</Button>
+                router.push("/projects");
+              }}
+            >
+              Cancel
+            </Button>
 
             <Button type="submit" disabled={loading}>
               {loading ? "Saving..." : "Save Project"}

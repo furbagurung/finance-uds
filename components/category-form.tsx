@@ -29,6 +29,13 @@ const transactionTypes: TransactionType[] = [
   "EXPENSE",
   "WITHDRAWAL",
 ];
+type CreatedCategory = {
+  id: string;
+  name: string;
+  type: TransactionType;
+  description?: string | null;
+};
+
 type CategoryFormProps = {
   /**
    * page  = normal full page form
@@ -37,10 +44,21 @@ type CategoryFormProps = {
   mode?: "page" | "modal";
 
   /**
+   * Preselects category type when creating from transaction form.
+   */
+  defaultType?: TransactionType;
+
+  /**
    * Runs after successful category creation.
    * Useful for closing modal from parent component.
    */
   onSuccess?: () => void;
+
+  /**
+   * Runs with the newly created category.
+   * Useful for refreshing dropdown and auto-selecting the new category.
+   */
+  onCreated?: (category: CreatedCategory) => void;
 
   /**
    * Runs when cancel is clicked.
@@ -50,13 +68,15 @@ type CategoryFormProps = {
 };
 export function CategoryForm({
   mode = "page",
+  defaultType = "EXPENSE",
   onSuccess,
+  onCreated,
   onCancel,
 }: CategoryFormProps) {
   const router = useRouter();
 
   const [name, setName] = useState("");
-  const [type, setType] = useState<TransactionType>("EXPENSE");
+  const [type, setType] = useState<TransactionType>(defaultType);
   const [description, setDescription] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -88,11 +108,14 @@ export function CategoryForm({
       }
 
       if (mode === "modal") {
+        if (data.category) {
+          onCreated?.(data.category);
+        }
+
         router.refresh();
         onSuccess?.();
         return;
       }
-
       router.push("/categories");
       router.refresh();
     } catch {
