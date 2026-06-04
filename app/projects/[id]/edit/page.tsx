@@ -37,6 +37,7 @@ export default async function EditProjectPage({
       id: true,
       name: true,
       companyName: true,
+      branchId: true,
     },
   });
 

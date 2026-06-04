@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FileText } from "lucide-react";
 
+import { BranchBadge } from "@/components/branch-badge";
 import {
   Table,
   TableBody,
@@ -18,6 +19,13 @@ type TransactionTableAttachment = {
   fileUrl: string;
 };
 
+type TransactionTableBranch = {
+  id: string;
+  name: string;
+  code: string;
+  currency: string;
+} | null;
+
 export type TransactionTableItem = {
   id: string;
   dateLabel: string;
@@ -29,6 +37,7 @@ export type TransactionTableItem = {
   doneFor: string | null;
   title: string;
   categoryName: string | null;
+  branch: TransactionTableBranch;
   paymentMethod: string | null;
   amountLabel: string;
   attachments: TransactionTableAttachment[];
@@ -221,6 +230,15 @@ export function TransactionsTable({ transactions }: TransactionsTableProps) {
                 >
                   {formattedType}
                 </span>
+
+                {transaction.branch ? (
+                  <div className="mt-1.5">
+                    <BranchBadge
+                      branch={transaction.branch}
+                      className="text-[10px] leading-none"
+                    />
+                  </div>
+                ) : null}
               </TableCell>
 
               <TableCell className="truncate px-3.5 py-3.5 text-sm font-medium text-slate-600">

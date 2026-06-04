@@ -3,13 +3,34 @@ import {
   ExpenseScope,
   PaymentMethod,
   PayrollStatus,
+  Prisma,
   TransactionType,
 } from "@prisma/client";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { createActivityLog } from "@/lib/activity-log";
 
-export async function GET() {
+const branchSelect = {
+  id: true,
+  name: true,
+  code: true,
+  country: true,
+  currency: true,
+  calendarSystem: true,
+  fiscalYearType: true,
+} satisfies Prisma.BranchSelect;
+
+function parseOptionalString(value: unknown) {
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
+
+  const parsedValue = String(value).trim();
+
+  return parsedValue || null;
+}
+
+export async function GET(request: Request) {
   try {
     const user = await getCurrentUser();
 
@@ -20,7 +41,58 @@ export async function GET() {
       );
     }
 
+    const { searchParams } = new URL(request.url);
+    const typeParam = searchParams.get("type");
+    const selectedType =
+      typeParam && typeParam !== "ALL" ? (typeParam as TransactionType) : null;
+    const branchIdParam = parseOptionalString(searchParams.get("branchId"));
+    const clientIdParam = parseOptionalString(searchParams.get("clientId"));
+    const projectIdParam = parseOptionalString(searchParams.get("projectId"));
+    const branchId = branchIdParam && branchIdParam !== "ALL" ? branchIdParam : null;
+    const clientId = clientIdParam && clientIdParam !== "ALL" ? clientIdParam : null;
+    const projectId =
+      projectIdParam && projectIdParam !== "ALL" ? projectIdParam : null;
+    const searchQuery = (
+      searchParams.get("q") ||
+      searchParams.get("search") ||
+      ""
+    ).trim();
+    const fromDate =
+      searchParams.get("startDate") || searchParams.get("from") || "";
+    const toDate = searchParams.get("endDate") || searchParams.get("to") || "";
+
+    const where: Prisma.TransactionWhereInput = {
+      ...(selectedType && Object.values(TransactionType).includes(selectedType)
+        ? { type: selectedType }
+        : {}),
+      ...(branchId ? { branchId } : {}),
+      ...(clientId ? { clientId } : {}),
+      ...(projectId ? { projectId } : {}),
+      ...(searchQuery
+        ? {
+            OR: [
+              { title: { contains: searchQuery } },
+              { doneFor: { contains: searchQuery } },
+              { paidBy: { contains: searchQuery } },
+              { client: { name: { contains: searchQuery } } },
+              { client: { companyName: { contains: searchQuery } } },
+              { project: { name: { contains: searchQuery } } },
+              { category: { name: { contains: searchQuery } } },
+            ],
+          }
+        : {}),
+      ...(fromDate || toDate
+        ? {
+            date: {
+              ...(fromDate ? { gte: new Date(fromDate) } : {}),
+              ...(toDate ? { lte: new Date(toDate) } : {}),
+            },
+          }
+        : {}),
+    };
+
     const transactions = await prisma.transaction.findMany({
+      where,
       orderBy: {
         date: "desc",
       },
@@ -28,6 +100,9 @@ export async function GET() {
         category: true,
         client: true,
         project: true,
+        branch: {
+          select: branchSelect,
+        },
         createdBy: {
           select: {
             id: true,
@@ -84,6 +159,9 @@ export async function POST(request: Request) {
     const categoryId = body.categoryId ? String(body.categoryId) : null;
     const clientId = body.clientId ? String(body.clientId) : null;
     const projectId = body.projectId ? String(body.projectId) : null;
+    const branchId = parseOptionalString(body.branchId);
+    const branchIdTouched = Boolean(body.branchIdTouched);
+    const requestedCurrency = parseOptionalString(body.currency)?.toUpperCase();
 
     const isBillable = Boolean(body.isBillable);
     const isReimbursed = Boolean(body.isReimbursed);
@@ -129,7 +207,34 @@ export async function POST(request: Request) {
       );
     }
 
-    let salaryEmployee: { id: string; fullName: string } | null = null;
+    let selectedBranch: { id: string; currency: string } | null = null;
+
+    if (branchId) {
+      selectedBranch = await prisma.branch.findFirst({
+        where: {
+          id: branchId,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          currency: true,
+        },
+      });
+
+      if (!selectedBranch) {
+        return NextResponse.json(
+          { message: "Selected branch was not found or is inactive." },
+          { status: 400 }
+        );
+      }
+    }
+
+    let salaryEmployee: {
+      id: string;
+      fullName: string;
+      branchId: string | null;
+      branch: { id: string; currency: string; isActive: boolean } | null;
+    } | null = null;
     let salaryNetPay: number | null = null;
 
     if (isSalaryExpense) {
@@ -194,6 +299,14 @@ export async function POST(request: Request) {
         select: {
           id: true,
           fullName: true,
+          branchId: true,
+          branch: {
+            select: {
+              id: true,
+              currency: true,
+              isActive: true,
+            },
+          },
         },
       });
 
@@ -226,6 +339,68 @@ export async function POST(request: Request) {
       }
     }
 
+    if (!selectedBranch && !branchIdTouched) {
+      if (projectId) {
+        const project = await prisma.project.findUnique({
+          where: {
+            id: projectId,
+          },
+          select: {
+            branchId: true,
+            branch: {
+              select: {
+                id: true,
+                currency: true,
+                isActive: true,
+              },
+            },
+          },
+        });
+
+        if (project?.branch?.isActive) {
+          selectedBranch = {
+            id: project.branch.id,
+            currency: project.branch.currency,
+          };
+        }
+      }
+
+      if (!selectedBranch && clientId) {
+        const client = await prisma.client.findUnique({
+          where: {
+            id: clientId,
+          },
+          select: {
+            branchId: true,
+            branch: {
+              select: {
+                id: true,
+                currency: true,
+                isActive: true,
+              },
+            },
+          },
+        });
+
+        if (client?.branch?.isActive) {
+          selectedBranch = {
+            id: client.branch.id,
+            currency: client.branch.currency,
+          };
+        }
+      }
+
+      if (!selectedBranch && salaryEmployee?.branch?.isActive) {
+        selectedBranch = {
+          id: salaryEmployee.branch.id,
+          currency: salaryEmployee.branch.currency,
+        };
+      }
+    }
+
+    const resolvedBranchId = selectedBranch?.id ?? null;
+    const resolvedCurrency = requestedCurrency ?? selectedBranch?.currency ?? null;
+
     const transaction = await prisma.$transaction(async (tx) => {
       const createdTransaction = await tx.transaction.create({
         data: {
@@ -249,6 +424,8 @@ export async function POST(request: Request) {
           categoryId,
           clientId,
           projectId,
+          branchId: resolvedBranchId,
+          currency: resolvedCurrency,
           createdById: user.id,
           attachments: attachment
             ? {
@@ -266,6 +443,9 @@ export async function POST(request: Request) {
           category: true,
           client: true,
           project: true,
+          branch: {
+            select: branchSelect,
+          },
           attachments: true,
         },
       });
@@ -292,6 +472,8 @@ export async function POST(request: Request) {
             notes:
               notes ||
               `Created from salary expense transaction: ${createdTransaction.title}`,
+            branchId: resolvedBranchId,
+            currency: resolvedCurrency,
             transactionId: createdTransaction.id,
           },
         });

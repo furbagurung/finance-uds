@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BranchBadge } from "@/components/branch-badge";
 import { DeleteTransactionButton } from "@/components/delete-transaction-button";
 import { notFound, redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
@@ -68,6 +69,17 @@ export default async function TransactionDetailPage({
       category: true,
       client: true,
       project: true,
+      branch: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          country: true,
+          currency: true,
+          calendarSystem: true,
+          fiscalYearType: true,
+        },
+      },
       attachments: true,
       createdBy: {
         select: {
@@ -142,6 +154,17 @@ export default async function TransactionDetailPage({
               <DetailItem
                 label="Expense Scope"
                 value={transaction.expenseScope || "-"}
+              />
+
+              <DetailItem
+                label="Branch"
+                value={
+                  transaction.branch ? (
+                    <BranchBadge branch={transaction.branch} showCurrency />
+                  ) : (
+                    "Not assigned"
+                  )
+                }
               />
             </div>
 

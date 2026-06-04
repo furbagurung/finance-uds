@@ -4,6 +4,16 @@ import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { createActivityLog } from "@/lib/activity-log";
 
+const projectBranchSelect = {
+  id: true,
+  name: true,
+  code: true,
+  country: true,
+  currency: true,
+  calendarSystem: true,
+  fiscalYearType: true,
+};
+
 type ProjectRouteProps = {
   params: Promise<{
     id: string;
@@ -26,7 +36,16 @@ export async function GET(_request: Request, { params }: ProjectRouteProps) {
     const project = await prisma.project.findUnique({
       where: { id },
       include: {
-        client: true,
+        branch: {
+          select: projectBranchSelect,
+        },
+        client: {
+          include: {
+            branch: {
+              select: projectBranchSelect,
+            },
+          },
+        },
         transactions: true,
       },
     });
@@ -68,6 +87,14 @@ export async function PATCH(request: Request, { params }: ProjectRouteProps) {
     const budget = body.budget ? Number(body.budget) : null;
     const startDate = body.startDate ? new Date(body.startDate) : null;
     const endDate = body.endDate ? new Date(body.endDate) : null;
+    const branchIdValue =
+      body.branchId === "" ||
+      body.branchId === null ||
+      body.branchId === undefined
+        ? null
+        : String(body.branchId).trim();
+    const branchId = branchIdValue || null;
+    const branchIdTouched = Boolean(body.branchIdTouched);
     const status = body.status
       ? (body.status as ProjectStatus)
       : ProjectStatus.ACTIVE;
@@ -97,6 +124,51 @@ export async function PATCH(request: Request, { params }: ProjectRouteProps) {
       );
     }
 
+    if (branchId) {
+      const branch = await prisma.branch.findFirst({
+        where: {
+          id: branchId,
+          isActive: true,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!branch) {
+        return NextResponse.json(
+          { message: "Selected branch was not found or is inactive." },
+          { status: 400 }
+        );
+      }
+    }
+
+    const selectedClient = clientId
+      ? await prisma.client.findUnique({
+          where: {
+            id: clientId,
+          },
+          select: {
+            branchId: true,
+            branch: {
+              select: {
+                id: true,
+                isActive: true,
+              },
+            },
+          },
+        })
+      : null;
+
+    const resolvedBranchId =
+      branchId ||
+      (branchIdTouched
+        ? null
+        : existingProject.branchId ||
+          (!existingProject.branchId && selectedClient?.branch?.isActive
+        ? selectedClient.branchId
+        : null));
+
     const project = await prisma.project.update({
       where: { id },
       data: {
@@ -106,9 +178,19 @@ export async function PATCH(request: Request, { params }: ProjectRouteProps) {
         startDate,
         endDate,
         status,
+        branchId: resolvedBranchId,
       },
       include: {
-        client: true,
+        branch: {
+          select: projectBranchSelect,
+        },
+        client: {
+          include: {
+            branch: {
+              select: projectBranchSelect,
+            },
+          },
+        },
       },
     });
 
@@ -121,6 +203,8 @@ export async function PATCH(request: Request, { params }: ProjectRouteProps) {
       metadata: {
         clientId: project.clientId,
         clientName: project.client?.name,
+        branchId: project.branchId,
+        branchName: project.branch?.name,
         budget: project.budget ? Number(project.budget) : null,
         status: project.status,
       },

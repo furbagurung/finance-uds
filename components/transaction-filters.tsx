@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CalendarDays, Search, X } from "lucide-react";
 
+import { BranchFilter } from "@/components/branch-filter";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -29,6 +30,7 @@ type TransactionFiltersProps = {
   clients: Client[];
   projects: Project[];
   selectedType: string;
+  selectedBranchId: string;
   selectedClientId: string;
   selectedProjectId: string;
   fromDate: string;
@@ -48,6 +50,7 @@ export function TransactionFilters({
   clients,
   projects,
   selectedType,
+  selectedBranchId,
   selectedClientId,
   selectedProjectId,
   fromDate,
@@ -87,6 +90,7 @@ export function TransactionFilters({
 
   const hasActiveFilters =
     type !== "ALL" ||
+    Boolean(selectedBranchId) ||
     clientId !== "ALL" ||
     projectId !== "ALL" ||
     from ||
@@ -199,6 +203,8 @@ export function TransactionFilters({
   return (
     <div className="border-b border-slate-100 bg-white px-4 py-3 lg:px-5">
       <div className="flex min-w-0 flex-wrap items-center gap-2 2xl:flex-nowrap">
+        <BranchFilter basePath="/transactions" />
+
         <div className="flex max-w-full shrink-0 overflow-x-auto rounded-xl border border-slate-100 bg-slate-50 p-1">
           {transactionTypes.map((item) => (
             <button

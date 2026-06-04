@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { BranchBadge } from "@/components/branch-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DeleteProjectButton } from "@/components/delete-project-button";
@@ -54,7 +55,32 @@ export default async function ProjectDetailPage({
   const project = await prisma.project.findUnique({
     where: { id },
     include: {
-      client: true,
+      branch: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          country: true,
+          currency: true,
+          calendarSystem: true,
+          fiscalYearType: true,
+        },
+      },
+      client: {
+        include: {
+          branch: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              country: true,
+              currency: true,
+              calendarSystem: true,
+              fiscalYearType: true,
+            },
+          },
+        },
+      },
       createdBy: {
         select: {
           name: true,
@@ -200,6 +226,19 @@ export default async function ProjectDetailPage({
                 <Badge variant="secondary">
                   {project.status.replaceAll("_", " ")}
                 </Badge>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Branch
+              </p>
+              <div className="mt-1">
+                {project.branch ? (
+                  <BranchBadge branch={project.branch} showCurrency />
+                ) : (
+                  <span className="font-medium">Not assigned</span>
+                )}
               </div>
             </div>
 

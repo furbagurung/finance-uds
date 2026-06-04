@@ -28,6 +28,7 @@ import {
 } from "react-icons/fa6";
 import type { IconType } from "react-icons";
 
+import { BranchBadge } from "@/components/branch-badge";
 import { DeleteClientButton } from "@/components/delete-client-button";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
@@ -156,6 +157,17 @@ export default async function ClientDetailPage({
   const client = await prisma.client.findUnique({
     where: { id },
     include: {
+      branch: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          country: true,
+          currency: true,
+          calendarSystem: true,
+          fiscalYearType: true,
+        },
+      },
       createdBy: {
         select: {
           name: true,
@@ -282,6 +294,14 @@ export default async function ClientDetailPage({
                         {client.industry}
                       </Badge>
                     ) : null}
+
+                    {client.branch ? (
+                      <BranchBadge branch={client.branch} showCurrency />
+                    ) : (
+                      <Badge className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-50">
+                        Not assigned
+                      </Badge>
+                    )}
                   </div>
 
                   <p className="mt-1 text-sm font-medium text-slate-500">
@@ -452,6 +472,15 @@ export default async function ClientDetailPage({
                     label: "Industry",
                     value: client.industry || "-",
                     icon: WalletCards,
+                  },
+                  {
+                    label: "Branch",
+                    value: client.branch ? (
+                      <BranchBadge branch={client.branch} showCurrency />
+                    ) : (
+                      "Not assigned"
+                    ),
+                    icon: Building2,
                   },
                   {
                     label: "Created By",

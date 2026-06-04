@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BranchSelectField } from "@/components/branch-select-field";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,6 +25,7 @@ type Client = {
   id: string;
   name: string;
   companyName?: string | null;
+  branchId?: string | null;
 };
 
 type ProjectStatus = "ACTIVE" | "COMPLETED" | "ON_HOLD" | "CANCELLED";
@@ -40,6 +42,7 @@ type CreatedProject = {
   name: string;
   clientId?: string | null;
   client?: Client | null;
+  branchId?: string | null;
 };
 
 type ProjectFormProps = {
@@ -76,6 +79,8 @@ export function ProjectForm({
   const [budget, setBudget] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [branchTouched, setBranchTouched] = useState(false);
   const [status, setStatus] = useState<ProjectStatus>("ACTIVE");
 
   const [loading, setLoading] = useState(false);
@@ -94,6 +99,25 @@ export function ProjectForm({
     loadClients();
   }, []);
 
+  useEffect(() => {
+    if (branchTouched || branchId || !clientId) return;
+
+    const selectedClient = clients.find((client) => client.id === clientId);
+
+    if (selectedClient?.branchId) {
+      setBranchId(selectedClient.branchId);
+    }
+  }, [branchId, branchTouched, clientId, clients]);
+
+  function handleClientChange(nextClientId: string) {
+    setClientId(nextClientId);
+  }
+
+  function handleBranchChange(nextBranchId: string) {
+    setBranchTouched(true);
+    setBranchId(nextBranchId);
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -111,6 +135,8 @@ export function ProjectForm({
           budget: budget ? Number(budget) : null,
           startDate: startDate || null,
           endDate: endDate || null,
+          branchId,
+          branchIdTouched: branchTouched,
           status,
         }),
       });
@@ -164,7 +190,7 @@ export function ProjectForm({
 
           <div className="space-y-2">
             <Label>Client</Label>
-            <Select value={clientId} onValueChange={setClientId}>
+            <Select value={clientId} onValueChange={handleClientChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select client" />
               </SelectTrigger>
@@ -176,6 +202,19 @@ export function ProjectForm({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Branch</Label>
+            <BranchSelectField
+              value={branchId}
+              onValueChange={handleBranchChange}
+              placeholder="Select branch"
+              showCurrency
+              allowUnassigned
+              unassignedLabel="Not assigned"
+              triggerClassName="h-10 w-full"
+            />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

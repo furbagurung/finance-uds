@@ -3,6 +3,16 @@ import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { createActivityLog } from "@/lib/activity-log";
 
+const clientBranchSelect = {
+  id: true,
+  name: true,
+  code: true,
+  country: true,
+  currency: true,
+  calendarSystem: true,
+  fiscalYearType: true,
+};
+
 type ClientRouteProps = {
   params: Promise<{
     id: string;
@@ -25,6 +35,9 @@ export async function GET(_request: Request, { params }: ClientRouteProps) {
     const client = await prisma.client.findUnique({
       where: { id },
       include: {
+        branch: {
+          select: clientBranchSelect,
+        },
         projects: true,
         transactions: true,
       },
@@ -79,6 +92,13 @@ async function updateClient(request: Request, { params }: ClientRouteProps) {
     const youtubeUrl = body.youtubeUrl ? String(body.youtubeUrl).trim() : null;
     const industry = body.industry ? String(body.industry).trim() : null;
     const notes = body.notes ? String(body.notes).trim() : null;
+    const branchIdValue =
+      body.branchId === "" ||
+      body.branchId === null ||
+      body.branchId === undefined
+        ? null
+        : String(body.branchId).trim();
+    const branchId = branchIdValue || null;
 
     if (!name) {
       return NextResponse.json(
@@ -96,6 +116,25 @@ async function updateClient(request: Request, { params }: ClientRouteProps) {
         { message: "Client not found." },
         { status: 404 }
       );
+    }
+
+    if (branchId) {
+      const branch = await prisma.branch.findFirst({
+        where: {
+          id: branchId,
+          isActive: true,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!branch) {
+        return NextResponse.json(
+          { message: "Selected branch was not found or is inactive." },
+          { status: 400 }
+        );
+      }
     }
 
     const client = await prisma.client.update({
@@ -116,6 +155,12 @@ async function updateClient(request: Request, { params }: ClientRouteProps) {
         youtubeUrl,
         industry,
         notes,
+        branchId,
+      },
+      include: {
+        branch: {
+          select: clientBranchSelect,
+        },
       },
     });
 
@@ -132,6 +177,8 @@ async function updateClient(request: Request, { params }: ClientRouteProps) {
         status: client.status,
         website: client.website,
         industry: client.industry,
+        branchId: client.branchId,
+        branchName: client.branch?.name,
       },
     });
 

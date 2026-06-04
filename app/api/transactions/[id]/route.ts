@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   ExpenseScope,
   PaymentMethod,
+  Prisma,
   TransactionType,
 } from "@prisma/client";
 import { getCurrentUser } from "@/lib/current-user";
@@ -13,6 +14,26 @@ type TransactionRouteProps = {
     id: string;
   }>;
 };
+
+const branchSelect = {
+  id: true,
+  name: true,
+  code: true,
+  country: true,
+  currency: true,
+  calendarSystem: true,
+  fiscalYearType: true,
+} satisfies Prisma.BranchSelect;
+
+function parseOptionalString(value: unknown) {
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
+
+  const parsedValue = String(value).trim();
+
+  return parsedValue || null;
+}
 
 export async function GET(
   _request: Request,
@@ -38,6 +59,9 @@ export async function GET(
         category: true,
         client: true,
         project: true,
+        branch: {
+          select: branchSelect,
+        },
         attachments: true,
         createdBy: {
           select: {
@@ -121,6 +145,18 @@ export async function PATCH(
 
     const isBillable = Boolean(body.isBillable);
     const isReimbursed = Boolean(body.isReimbursed);
+    const hasBranchInput = Object.prototype.hasOwnProperty.call(
+      body,
+      "branchId"
+    );
+    const hasCurrencyInput = Object.prototype.hasOwnProperty.call(
+      body,
+      "currency"
+    );
+    const branchId = hasBranchInput ? parseOptionalString(body.branchId) : null;
+    const requestedCurrency = hasCurrencyInput
+      ? parseOptionalString(body.currency)?.toUpperCase() ?? null
+      : undefined;
 
     if (!Object.values(TransactionType).includes(type)) {
       return NextResponse.json(
@@ -150,6 +186,35 @@ export async function PATCH(
       );
     }
 
+    let resolvedBranchId: string | null | undefined = undefined;
+    let resolvedCurrency: string | null | undefined = requestedCurrency;
+
+    if (hasBranchInput && branchId) {
+      const branch = await prisma.branch.findFirst({
+        where: {
+          id: branchId,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          currency: true,
+        },
+      });
+
+      if (!branch) {
+        return NextResponse.json(
+          { message: "Selected branch was not found or is inactive." },
+          { status: 400 }
+        );
+      }
+
+      resolvedBranchId = branch.id;
+      resolvedCurrency = requestedCurrency ?? branch.currency;
+    } else if (hasBranchInput) {
+      resolvedBranchId = null;
+      resolvedCurrency = requestedCurrency ?? null;
+    }
+
     const transaction = await prisma.transaction.update({
       where: {
         id,
@@ -169,11 +234,16 @@ export async function PATCH(
         notes,
         isBillable: type === TransactionType.EXPENSE ? isBillable : false,
         isReimbursed: type === TransactionType.EXPENSE ? isReimbursed : false,
+        ...(hasBranchInput ? { branchId: resolvedBranchId } : {}),
+        ...(resolvedCurrency !== undefined ? { currency: resolvedCurrency } : {}),
       },
       include: {
         category: true,
         client: true,
         project: true,
+        branch: {
+          select: branchSelect,
+        },
         attachments: true,
       },
     });

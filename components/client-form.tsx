@@ -4,6 +4,7 @@ import { ChangeEvent, useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { BranchSelectField } from "@/components/branch-select-field";
 import {
   Card,
   CardContent,
@@ -14,6 +15,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+
+type ClientBranchData = {
+  id: string;
+  name: string;
+  code: string;
+  country: string;
+  currency: string;
+  calendarSystem: string;
+  fiscalYearType: string;
+};
 
 type ClientFormInitialData = {
   id: string;
@@ -31,6 +42,8 @@ type ClientFormInitialData = {
   youtubeUrl: string | null;
   industry: string | null;
   notes: string | null;
+  branchId?: string | null;
+  branch?: ClientBranchData | null;
 };
 type CreatedClient = {
   id: string;
@@ -48,6 +61,8 @@ type CreatedClient = {
   youtubeUrl?: string | null;
   industry?: string | null;
   notes?: string | null;
+  branchId?: string | null;
+  branch?: ClientBranchData | null;
 };
 type ClientFormProps = {
   initialData?: ClientFormInitialData;
@@ -99,6 +114,7 @@ export function ClientForm({
   const [youtubeUrl, setYoutubeUrl] = useState(initialData?.youtubeUrl || "");
   const [industry, setIndustry] = useState(initialData?.industry || "");
   const [notes, setNotes] = useState(initialData?.notes || "");
+  const [branchId, setBranchId] = useState(initialData?.branchId || "");
 
   const isEditing = Boolean(initialData);
 
@@ -167,6 +183,7 @@ export function ClientForm({
             youtubeUrl,
             industry,
             notes,
+            branchId,
           }),
         });
 
@@ -229,6 +246,19 @@ export function ClientForm({
               <div className="space-y-2">
                 <Label>Industry</Label>
                 <Input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Interior / Retail / Beauty" />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Branch</Label>
+                <BranchSelectField
+                  value={branchId}
+                  onValueChange={setBranchId}
+                  placeholder="Select branch"
+                  showCurrency
+                  allowUnassigned
+                  unassignedLabel="Not assigned"
+                  triggerClassName="h-10 w-full"
+                />
               </div>
 
               <div className="space-y-2">

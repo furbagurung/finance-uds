@@ -38,6 +38,7 @@ type TransactionsPageProps = {
     type?: string;
     clientId?: string;
     projectId?: string;
+    branchId?: string;
     from?: string;
     to?: string;
     search?: string;
@@ -72,12 +73,15 @@ export default async function TransactionsPage({
     params.clientId && params.clientId !== "ALL" ? params.clientId : "";
   const selectedProjectId =
     params.projectId && params.projectId !== "ALL" ? params.projectId : "";
+  const selectedBranchId =
+    params.branchId && params.branchId !== "ALL" ? params.branchId : "";
   const fromDate = params.startDate || params.from || "";
   const toDate = params.endDate || params.to || "";
   const searchQuery = (params.q || params.search || "").trim();
 
   const transactionWhere: Prisma.TransactionWhereInput = {
     ...(selectedType ? { type: selectedType } : {}),
+    ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
     ...(selectedClientId ? { clientId: selectedClientId } : {}),
     ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
     ...(searchQuery
@@ -111,6 +115,17 @@ export default async function TransactionsPage({
     include: {
       category: true,
       client: true,
+      branch: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          country: true,
+          currency: true,
+          calendarSystem: true,
+          fiscalYearType: true,
+        },
+      },
       project: {
         include: {
           client: {
@@ -180,6 +195,7 @@ export default async function TransactionsPage({
 
   const exportParams = new URLSearchParams({
     ...(selectedType ? { type: selectedType } : {}),
+    ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
     ...(selectedClientId ? { clientId: selectedClientId } : {}),
     ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
     ...(fromDate ? { from: fromDate } : {}),
@@ -203,6 +219,7 @@ export default async function TransactionsPage({
     doneFor: transaction.doneFor,
     title: transaction.title,
     categoryName: transaction.category?.name || null,
+    branch: transaction.branch,
     paymentMethod: transaction.paymentMethod,
     amountLabel: formatCurrency(transaction.amount),
     attachments: transaction.attachments.map((attachment) => ({
@@ -351,6 +368,7 @@ triggerClassName="h-10 cursor-pointer rounded-full bg-slate-950 px-5 text-sm fon
             clients={clients}
             projects={projects}
             selectedType={selectedType}
+            selectedBranchId={selectedBranchId}
             selectedClientId={selectedClientId}
             selectedProjectId={selectedProjectId}
             fromDate={fromDate}

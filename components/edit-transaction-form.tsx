@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BranchSelectField } from "@/components/branch-select-field";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -69,6 +70,8 @@ type Transaction = {
   categoryId: string | null;
   clientId: string | null;
   projectId: string | null;
+  branchId: string | null;
+  currency: string | null;
 };
 
 type EditTransactionFormProps = {
@@ -119,6 +122,7 @@ export function EditTransactionForm({
   const [categoryId, setCategoryId] = useState(transaction.categoryId || "");
   const [clientId, setClientId] = useState(transaction.clientId || "");
   const [projectId, setProjectId] = useState(transaction.projectId || "");
+  const [branchId, setBranchId] = useState(transaction.branchId || "");
   const [paidBy, setPaidBy] = useState(transaction.paidBy || "");
   const [doneFor, setDoneFor] = useState(transaction.doneFor || "");
   const [title, setTitle] = useState(transaction.title || "");
@@ -177,6 +181,8 @@ export function EditTransactionForm({
           categoryId: categoryId || null,
           clientId: clientId || null,
           projectId: projectId || null,
+          branchId: branchId || null,
+          branchIdTouched: true,
           paidBy,
           doneFor,
           isBillable: type === "EXPENSE" ? isBillable : false,
@@ -238,6 +244,17 @@ export function EditTransactionForm({
                 onChange={(event) => setDate(event.target.value)}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Branch</Label>
+            <BranchSelectField
+              value={branchId}
+              onValueChange={setBranchId}
+              placeholder="Select branch"
+              showCurrency
+              allowUnassigned
+            />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

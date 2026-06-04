@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { BranchSelectField } from "@/components/branch-select-field";
 import { Button } from "@/components/ui/button";
 import { CategoryForm } from "@/components/category-form";
 import { ProjectForm } from "@/components/project-form";
@@ -41,11 +42,21 @@ type Category = {
   name: string;
   type: TransactionType;
 };
+
+type BranchSummary = {
+  id: string;
+  name?: string | null;
+  code?: string | null;
+  currency?: string | null;
+};
+
 type Client = {
   id: string;
   name: string;
   companyName?: string | null;
   logoUrl?: string | null;
+  branchId?: string | null;
+  branch?: BranchSummary | null;
 };
 
 type Project = {
@@ -53,6 +64,8 @@ type Project = {
   name: string;
   clientId?: string | null;
   client?: Client | null;
+  branchId?: string | null;
+  branch?: BranchSummary | null;
 };
 
 type Employee = {
@@ -61,6 +74,8 @@ type Employee = {
   email: string;
   position?: string | null;
   salaryAmount?: string | number | null;
+  branchId?: string | null;
+  branch?: BranchSummary | null;
 };
 
 const transactionTypes: TransactionType[] = [
@@ -662,6 +677,8 @@ export function TransactionForm({
   const [categoryId, setCategoryId] = useState("");
   const [clientId, setClientId] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [branchIdTouched, setBranchIdTouched] = useState(false);
   const [paidBy, setPaidBy] = useState("");
   const [doneFor, setDoneFor] = useState("");
   const [title, setTitle] = useState("");
@@ -785,15 +802,56 @@ export function TransactionForm({
     }
   }
 
+  function getProjectBranchId(project: Project | null | undefined) {
+    return project?.branchId || project?.branch?.id || "";
+  }
+
+  function getClientBranchId(client: Client | null | undefined) {
+    return client?.branchId || client?.branch?.id || "";
+  }
+
+  function getEmployeeBranchId(employee: Employee | null | undefined) {
+    return employee?.branchId || employee?.branch?.id || "";
+  }
+
+  function inferBranchFromProjectOrClient(
+    nextProjectId: string,
+    nextClientId: string,
+  ) {
+    if (branchIdTouched) return;
+
+    const selectedProject =
+      projects.find((project) => project.id === nextProjectId) || null;
+    const nextClient =
+      clients.find((client) => client.id === nextClientId) || null;
+
+    setBranchId(getProjectBranchId(selectedProject) || getClientBranchId(nextClient));
+  }
+
   function handleClientChange(value: string) {
     setClientId(value);
     setProjectId("");
+    inferBranchFromProjectOrClient("", value);
+  }
+
+  function handleProjectChange(value: string) {
+    setProjectId(value);
+    inferBranchFromProjectOrClient(value, clientId);
+  }
+
+  function handleBranchChange(value: string) {
+    setBranchId(value);
+    setBranchIdTouched(true);
   }
 
   function handleSalaryEmployeeChange(value: string) {
     setSalaryEmployeeId(value);
 
     const selectedEmployee = employees.find((employee) => employee.id === value);
+
+    if (!branchIdTouched) {
+      setBranchId(getEmployeeBranchId(selectedEmployee));
+    }
 
     if (selectedEmployee?.salaryAmount) {
       setSalaryBasicSalary(String(selectedEmployee.salaryAmount));
@@ -852,6 +910,8 @@ export function TransactionForm({
           categoryId: categoryId || null,
           clientId: clientId || null,
           projectId: projectId || null,
+          branchId: branchId || null,
+          branchIdTouched,
           paidBy: null,
           doneFor: isSalaryExpense ? doneFor : title,
           isBillable: type === "EXPENSE" ? isBillable : false,
@@ -938,6 +998,18 @@ export function TransactionForm({
           </div>
         </div>
 
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-slate-600">Branch</Label>
+          <BranchSelectField
+            value={branchId}
+            onValueChange={handleBranchChange}
+            placeholder="Select branch"
+            showCurrency
+            allowUnassigned
+            triggerClassName="w-full"
+          />
+        </div>
+
         {type === "INCOME" ? (
           <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
             <h3 className="text-sm font-semibold text-slate-900">
@@ -966,7 +1038,11 @@ export function TransactionForm({
                       return [client, ...currentClients];
                     });
 
-                    handleClientChange(client.id);
+                    setClientId(client.id);
+                    setProjectId("");
+                    if (!branchIdTouched) {
+                      setBranchId(getClientBranchId(client));
+                    }
                   }}
                 />
               </div>
@@ -981,7 +1057,7 @@ export function TransactionForm({
                 <ProjectSelectField
                   projects={filteredProjects}
                   value={projectId}
-                  onValueChange={setProjectId}
+                  onValueChange={handleProjectChange}
                   selectedClientId={clientId}
                   onCreated={(project) => {
                     setProjects((currentProjects) => {
@@ -997,6 +1073,14 @@ export function TransactionForm({
                     });
 
                     setProjectId(project.id);
+                    if (!branchIdTouched) {
+                      setBranchId(
+                        getProjectBranchId(project) ||
+                          getClientBranchId(
+                            clients.find((client) => client.id === clientId),
+                          ),
+                      );
+                    }
                   }}
                 />
               </div>
@@ -1284,7 +1368,11 @@ export function TransactionForm({
                       return [client, ...currentClients];
                     });
 
-                    handleClientChange(client.id);
+                    setClientId(client.id);
+                    setProjectId("");
+                    if (!branchIdTouched) {
+                      setBranchId(getClientBranchId(client));
+                    }
                   }}
                 />
               </div>
@@ -1296,7 +1384,7 @@ export function TransactionForm({
                 <ProjectSelectField
                   projects={filteredProjects}
                   value={projectId}
-                  onValueChange={setProjectId}
+                  onValueChange={handleProjectChange}
                   selectedClientId={clientId}
                   onCreated={(project) => {
                     setProjects((currentProjects) => {
@@ -1312,6 +1400,14 @@ export function TransactionForm({
                     });
 
                     setProjectId(project.id);
+                    if (!branchIdTouched) {
+                      setBranchId(
+                        getProjectBranchId(project) ||
+                          getClientBranchId(
+                            clients.find((client) => client.id === clientId),
+                          ),
+                      );
+                    }
                   }}
                 />
               </div>

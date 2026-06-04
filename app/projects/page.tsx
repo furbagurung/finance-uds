@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { BranchBadge } from "@/components/branch-badge";
 import { Badge } from "@/components/ui/badge";
 import { ProjectCreateModal } from "@/components/project-create-modal";
 import {
@@ -46,7 +47,32 @@ export default async function ProjectsPage() {
       createdAt: "desc",
     },
     include: {
-      client: true,
+      branch: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          country: true,
+          currency: true,
+          calendarSystem: true,
+          fiscalYearType: true,
+        },
+      },
+      client: {
+        include: {
+          branch: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              country: true,
+              currency: true,
+              calendarSystem: true,
+              fiscalYearType: true,
+            },
+          },
+        },
+      },
       _count: {
         select: {
           transactions: true,
@@ -92,6 +118,7 @@ export default async function ProjectsPage() {
                 <TableRow>
                   <TableHead>Project</TableHead>
                   <TableHead>Client</TableHead>
+                  <TableHead>Branch</TableHead>
                   <TableHead>Budget</TableHead>
                   <TableHead>Timeline</TableHead>
                   <TableHead>Transactions</TableHead>
@@ -103,7 +130,7 @@ export default async function ProjectsPage() {
                 {projects.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="py-10 text-center text-sm text-slate-500"
                     >
                       No projects added yet.
@@ -122,6 +149,14 @@ export default async function ProjectsPage() {
                       </TableCell>
 
                       <TableCell>{project.client?.name || "-"}</TableCell>
+
+                      <TableCell>
+                        {project.branch ? (
+                          <BranchBadge branch={project.branch} />
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
 
                       <TableCell>{formatCurrency(project.budget)}</TableCell>
 
