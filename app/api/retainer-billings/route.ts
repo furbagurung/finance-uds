@@ -84,6 +84,21 @@ function createBillingPeriodDate(month: number, year: number) {
   return new Date(Date.UTC(year, month - 1, 1));
 }
 
+function parseStatusFilters(value: string | null) {
+  if (!value || value === "ALL") {
+    return [];
+  }
+
+  return value
+    .split(",")
+    .map((status) => status.trim())
+    .filter((status): status is RetainerBillingStatus =>
+      Object.values(RetainerBillingStatus).includes(
+        status as RetainerBillingStatus,
+      ),
+    );
+}
+
 export async function GET(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -104,14 +119,7 @@ export async function GET(request: Request) {
     const statusParam = parseOptionalString(searchParams.get("status"));
     const month = monthParam && monthParam !== "ALL" ? Number(monthParam) : null;
     const year = yearParam && yearParam !== "ALL" ? Number(yearParam) : null;
-    const status =
-      statusParam &&
-      statusParam !== "ALL" &&
-      Object.values(RetainerBillingStatus).includes(
-        statusParam as RetainerBillingStatus,
-      )
-        ? (statusParam as RetainerBillingStatus)
-        : null;
+    const statuses = parseStatusFilters(statusParam);
 
     const where: Prisma.RetainerBillingWhereInput = {
       ...(branchId && branchId !== "ALL" ? { branchId } : {}),
@@ -119,7 +127,8 @@ export async function GET(request: Request) {
       ...(clientId && clientId !== "ALL" ? { clientId } : {}),
       ...(month && month >= 1 && month <= 12 ? { month } : {}),
       ...(year && year >= 2000 ? { year } : {}),
-      ...(status ? { status } : {}),
+      ...(statuses.length === 1 ? { status: statuses[0] } : {}),
+      ...(statuses.length > 1 ? { status: { in: statuses } } : {}),
     };
 
     const retainerBillings = await prisma.retainerBilling.findMany({

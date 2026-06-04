@@ -774,21 +774,19 @@ export function TransactionForm({
   }, [projects, clientId]);
 
   const filteredRetainerBillings = useMemo(() => {
-    return retainerBillings.filter((billing) => {
-      if (billing.status === "PAID" || billing.status === "WAIVED") {
-        return false;
-      }
+    const openBillings = retainerBillings.filter(
+      (billing) => billing.status !== "PAID" && billing.status !== "WAIVED",
+    );
 
-      if (projectId && billing.projectId !== projectId) {
-        return false;
-      }
+    if (projectId) {
+      return openBillings.filter((billing) => billing.projectId === projectId);
+    }
 
-      if (clientId && billing.clientId !== clientId) {
-        return false;
-      }
+    if (clientId) {
+      return openBillings.filter((billing) => billing.clientId === clientId);
+    }
 
-      return true;
-    });
+    return openBillings;
   }, [clientId, projectId, retainerBillings]);
 
   const salaryNetPay = useMemo(() => {
@@ -828,7 +826,7 @@ export function TransactionForm({
         fetch("/api/clients"),
         fetch("/api/projects"),
         fetch("/api/employees"),
-        fetch("/api/retainer-billings"),
+        fetch("/api/retainer-billings?status=PENDING,PARTIALLY_PAID,OVERDUE"),
       ]);
 
       const categoriesData = await categoriesResponse.json();
@@ -1179,7 +1177,7 @@ export function TransactionForm({
 
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-slate-600">
-                Retainer Billing
+                Link to Retainer Billing
                 <span className="ml-1 font-normal text-slate-400">
                   Optional
                 </span>

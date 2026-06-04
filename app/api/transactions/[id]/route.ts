@@ -3,11 +3,13 @@ import {
   ExpenseScope,
   PaymentMethod,
   Prisma,
+  RetainerBillingStatus,
   TransactionType,
 } from "@prisma/client";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { createActivityLog } from "@/lib/activity-log";
+import { recalculateRetainerBilling } from "@/lib/retainer-billing";
 
 type TransactionRouteProps = {
   params: Promise<{
@@ -59,6 +61,15 @@ export async function GET(
         category: true,
         client: true,
         project: true,
+        retainerBilling: {
+          include: {
+            project: true,
+            client: true,
+            branch: {
+              select: branchSelect,
+            },
+          },
+        },
         branch: {
           select: branchSelect,
         },
@@ -138,6 +149,13 @@ export async function PATCH(
     const categoryId = body.categoryId ? String(body.categoryId) : null;
     const clientId = body.clientId ? String(body.clientId) : null;
     const projectId = body.projectId ? String(body.projectId) : null;
+    const hasRetainerBillingInput = Object.prototype.hasOwnProperty.call(
+      body,
+      "retainerBillingId"
+    );
+    const requestedRetainerBillingId = hasRetainerBillingInput
+      ? parseOptionalString(body.retainerBillingId)
+      : existingTransaction.retainerBillingId;
 
     const paidBy = body.paidBy ? String(body.paidBy).trim() : null;
     const doneFor = body.doneFor ? String(body.doneFor).trim() : null;
@@ -186,6 +204,43 @@ export async function PATCH(
       );
     }
 
+    let nextRetainerBillingId: string | null = null;
+
+    if (type === TransactionType.INCOME) {
+      nextRetainerBillingId = requestedRetainerBillingId;
+    } else if (requestedRetainerBillingId) {
+      return NextResponse.json(
+        { message: "Only income transactions can be linked to retainer billing." },
+        { status: 400 }
+      );
+    }
+
+    if (nextRetainerBillingId) {
+      const retainerBilling = await prisma.retainerBilling.findUnique({
+        where: {
+          id: nextRetainerBillingId,
+        },
+        select: {
+          id: true,
+          status: true,
+        },
+      });
+
+      if (!retainerBilling) {
+        return NextResponse.json(
+          { message: "Retainer billing not found." },
+          { status: 404 }
+        );
+      }
+
+      if (retainerBilling.status === RetainerBillingStatus.WAIVED) {
+        return NextResponse.json(
+          { message: "Waived retainer billings cannot receive linked payments." },
+          { status: 400 }
+        );
+      }
+    }
+
     let resolvedBranchId: string | null | undefined = undefined;
     let resolvedCurrency: string | null | undefined = requestedCurrency;
 
@@ -215,37 +270,62 @@ export async function PATCH(
       resolvedCurrency = requestedCurrency ?? null;
     }
 
-    const transaction = await prisma.transaction.update({
-      where: {
-        id,
-      },
-      data: {
-        type,
-        title,
-        amount,
-        date,
-        paymentMethod,
-        expenseScope: type === TransactionType.EXPENSE ? expenseScope : null,
-        categoryId,
-        clientId,
-        projectId,
-        paidBy,
-        doneFor,
-        notes,
-        isBillable: type === TransactionType.EXPENSE ? isBillable : false,
-        isReimbursed: type === TransactionType.EXPENSE ? isReimbursed : false,
-        ...(hasBranchInput ? { branchId: resolvedBranchId } : {}),
-        ...(resolvedCurrency !== undefined ? { currency: resolvedCurrency } : {}),
-      },
-      include: {
-        category: true,
-        client: true,
-        project: true,
-        branch: {
-          select: branchSelect,
+    const transaction = await prisma.$transaction(async (tx) => {
+      const updatedTransaction = await tx.transaction.update({
+        where: {
+          id,
         },
-        attachments: true,
-      },
+        data: {
+          type,
+          title,
+          amount,
+          date,
+          paymentMethod,
+          expenseScope: type === TransactionType.EXPENSE ? expenseScope : null,
+          categoryId,
+          clientId,
+          projectId,
+          retainerBillingId:
+            type === TransactionType.INCOME ? nextRetainerBillingId : null,
+          paidBy,
+          doneFor,
+          notes,
+          isBillable: type === TransactionType.EXPENSE ? isBillable : false,
+          isReimbursed: type === TransactionType.EXPENSE ? isReimbursed : false,
+          ...(hasBranchInput ? { branchId: resolvedBranchId } : {}),
+          ...(resolvedCurrency !== undefined ? { currency: resolvedCurrency } : {}),
+        },
+        include: {
+          category: true,
+          client: true,
+          project: true,
+          retainerBilling: {
+            include: {
+              project: true,
+              client: true,
+              branch: {
+                select: branchSelect,
+              },
+            },
+          },
+          branch: {
+            select: branchSelect,
+          },
+          attachments: true,
+        },
+      });
+
+      const retainerBillingIds = new Set(
+        [existingTransaction.retainerBillingId, nextRetainerBillingId].filter(
+          Boolean
+        ) as string[]
+      );
+
+      for (const retainerBillingId of retainerBillingIds) {
+        await recalculateRetainerBilling(tx, retainerBillingId);
+      }
+
+      return updatedTransaction;
     });
 
     await createActivityLog({
@@ -303,10 +383,19 @@ export async function DELETE(
       );
     }
 
-    await prisma.transaction.delete({
-      where: {
-        id,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.transaction.delete({
+        where: {
+          id,
+        },
+      });
+
+      if (existingTransaction.retainerBillingId) {
+        await recalculateRetainerBilling(
+          tx,
+          existingTransaction.retainerBillingId
+        );
+      }
     });
 
     await createActivityLog({

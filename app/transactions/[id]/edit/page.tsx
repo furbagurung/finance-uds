@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { RetainerBillingStatus } from "@prisma/client";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { EditTransactionForm } from "@/components/edit-transaction-form";
 import { getCurrentUser } from "@/lib/current-user";
@@ -31,7 +32,8 @@ export default async function EditTransactionPage({
     notFound();
   }
 
-  const categories = await prisma.category.findMany({
+  const [categories, clients, projects, retainerBillings] = await Promise.all([
+    prisma.category.findMany({
     orderBy: [
       {
         type: "asc",
@@ -45,9 +47,8 @@ export default async function EditTransactionPage({
       name: true,
       type: true,
     },
-  });
-
-  const clients = await prisma.client.findMany({
+    }),
+    prisma.client.findMany({
     orderBy: {
       name: "asc",
     },
@@ -56,9 +57,8 @@ export default async function EditTransactionPage({
       name: true,
       companyName: true,
     },
-  });
-
-  const projects = await prisma.project.findMany({
+    }),
+    prisma.project.findMany({
     orderBy: {
       name: "asc",
     },
@@ -67,12 +67,57 @@ export default async function EditTransactionPage({
       name: true,
       clientId: true,
     },
-  });
-const plainTransaction = {
-  ...transaction,
-  amount: Number(transaction.amount),
-  date: transaction.date,
-};
+    }),
+    prisma.retainerBilling.findMany({
+      where: {
+        OR: [
+          {
+            status: {
+              in: [
+                RetainerBillingStatus.PENDING,
+                RetainerBillingStatus.PARTIALLY_PAID,
+                RetainerBillingStatus.OVERDUE,
+              ],
+            },
+          },
+          ...(transaction.retainerBillingId
+            ? [{ id: transaction.retainerBillingId }]
+            : []),
+        ],
+      },
+      orderBy: [{ year: "desc" }, { month: "desc" }, { createdAt: "desc" }],
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            clientId: true,
+          },
+        },
+        client: {
+          select: {
+            id: true,
+            name: true,
+            companyName: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const plainTransaction = {
+    ...transaction,
+    amount: Number(transaction.amount),
+    date: transaction.date,
+  };
+
+  const plainRetainerBillings = retainerBillings.map((billing) => ({
+    ...billing,
+    expectedAmount: Number(billing.expectedAmount),
+    receivedAmount: Number(billing.receivedAmount),
+    pendingAmount: Number(billing.pendingAmount),
+  }));
+
   return (
     <DashboardShell user={user}>
       <div className="mx-auto max-w-3xl space-y-6">
@@ -90,6 +135,7 @@ const plainTransaction = {
           categories={categories}
           clients={clients}
           projects={projects}
+          retainerBillings={plainRetainerBillings}
         />
       </div>
     </DashboardShell>

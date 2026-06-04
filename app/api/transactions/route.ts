@@ -10,6 +10,7 @@ import {
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { createActivityLog } from "@/lib/activity-log";
+import { recalculateRetainerBilling } from "@/lib/retainer-billing";
 
 const branchSelect = {
   id: true,
@@ -29,25 +30,6 @@ function parseOptionalString(value: unknown) {
   const parsedValue = String(value).trim();
 
   return parsedValue || null;
-}
-
-function calculateRetainerPendingAmount(
-  expectedAmount: number,
-  receivedAmount: number,
-) {
-  return Math.max(expectedAmount - receivedAmount, 0);
-}
-
-function calculateRetainerStatus(expectedAmount: number, receivedAmount: number) {
-  if (receivedAmount <= 0) {
-    return RetainerBillingStatus.PENDING;
-  }
-
-  if (receivedAmount < expectedAmount) {
-    return RetainerBillingStatus.PARTIALLY_PAID;
-  }
-
-  return RetainerBillingStatus.PAID;
 }
 
 export async function GET(request: Request) {
@@ -556,29 +538,7 @@ export async function POST(request: Request) {
       }
 
       if (retainerBilling) {
-        const nextReceivedAmount =
-          Number(retainerBilling.receivedAmount) + amount;
-        const expectedAmount = Number(retainerBilling.expectedAmount);
-        const pendingAmount = calculateRetainerPendingAmount(
-          expectedAmount,
-          nextReceivedAmount,
-        );
-        const nextStatus = calculateRetainerStatus(
-          expectedAmount,
-          nextReceivedAmount,
-        );
-
-        await tx.retainerBilling.update({
-          where: {
-            id: retainerBilling.id,
-          },
-          data: {
-            receivedAmount: nextReceivedAmount,
-            pendingAmount,
-            status: nextStatus,
-            paidDate: nextStatus === RetainerBillingStatus.PAID ? date : null,
-          },
-        });
+        await recalculateRetainerBilling(tx, retainerBilling.id);
       }
 
       return createdTransaction;

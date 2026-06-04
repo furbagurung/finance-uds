@@ -72,6 +72,10 @@ function formatStatus(status: string) {
   return status.replaceAll("_", " ");
 }
 
+function formatPaymentMethod(method: string) {
+  return method.replaceAll("_", " ");
+}
+
 function getStatusClassName(status: RetainerBillingStatus) {
   if (status === "PAID") {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
@@ -326,10 +330,10 @@ export default async function RetainerDetailPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Category</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Receipt</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Transaction Title</TableHead>
+                  <TableHead className="text-right">Detail</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -347,27 +351,30 @@ export default async function RetainerDetailPage({
                     <TableRow key={transaction.id}>
                       <TableCell>{formatDate(transaction.date)}</TableCell>
                       <TableCell>
+                        {formatMoney(transaction.amount, transaction.currency)}
+                      </TableCell>
+                      <TableCell>
+                        {formatPaymentMethod(transaction.paymentMethod)}
+                      </TableCell>
+                      <TableCell>
                         <Link
                           href={`/transactions/${transaction.id}`}
                           className="font-medium hover:text-orange-600 hover:underline"
                         >
-                          {transaction.doneFor || transaction.title}
+                          {transaction.title}
                         </Link>
+                        {transaction.doneFor ? (
+                          <p className="text-xs text-slate-500">
+                            {transaction.doneFor}
+                          </p>
+                        ) : null}
                       </TableCell>
-                      <TableCell>{transaction.category?.name || "-"}</TableCell>
-                      <TableCell>
-                        {formatMoney(transaction.amount, transaction.currency)}
-                      </TableCell>
-                      <TableCell>
-                        {transaction.attachments.length > 0 ? (
-                          <Badge variant="secondary">
-                            {transaction.attachments.length} file
-                          </Badge>
-                        ) : (
-                          <span className="text-sm text-slate-400">
-                            No file
-                          </span>
-                        )}
+                      <TableCell className="text-right">
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/transactions/${transaction.id}`}>
+                            Open
+                          </Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))

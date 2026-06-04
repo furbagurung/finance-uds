@@ -23,8 +23,34 @@ type TransactionDetailPageProps = {
   }>;
 };
 
-function formatCurrency(amount: unknown) {
-  return `Rs. ${Number(amount).toLocaleString("en-IN")}`;
+const months = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function formatCurrency(amount: unknown, currency?: string | null) {
+  const value = Number(amount);
+  const currencyCode = currency || "NPR";
+
+  try {
+    return new Intl.NumberFormat("en-NP", {
+      style: "currency",
+      currency: currencyCode,
+      maximumFractionDigits: 2,
+    }).format(Number.isFinite(value) ? value : 0);
+  } catch {
+    return `${currencyCode} ${value.toLocaleString("en-IN")}`;
+  }
 }
 
 function formatDate(date: Date) {
@@ -69,6 +95,23 @@ export default async function TransactionDetailPage({
       category: true,
       client: true,
       project: true,
+      retainerBilling: {
+        include: {
+          project: true,
+          client: true,
+          branch: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              country: true,
+              currency: true,
+              calendarSystem: true,
+              fiscalYearType: true,
+            },
+          },
+        },
+      },
       branch: {
         select: {
           id: true,
@@ -93,6 +136,13 @@ export default async function TransactionDetailPage({
   if (!transaction) {
     notFound();
   }
+
+  const transactionCurrency =
+    transaction.currency || transaction.branch?.currency || "NPR";
+  const retainerCurrency =
+    transaction.retainerBilling?.currency ||
+    transaction.retainerBilling?.branch?.currency ||
+    transactionCurrency;
 
   return (
     <DashboardShell user={user}>
@@ -141,7 +191,7 @@ export default async function TransactionDetailPage({
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <DetailItem
                 label="Amount"
-                value={formatCurrency(transaction.amount)}
+                value={formatCurrency(transaction.amount, transactionCurrency)}
               />
 
               <DetailItem label="Date" value={formatDate(transaction.date)} />
@@ -222,6 +272,82 @@ export default async function TransactionDetailPage({
                 </p>
               </CardContent>
             </Card>
+
+            {transaction.retainerBilling ? (
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <CardTitle className="text-base">
+                        Retainer Billing
+                      </CardTitle>
+                      <CardDescription>
+                        Linked monthly retainer billing record.
+                      </CardDescription>
+                    </div>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/retainers/${transaction.retainerBilling.id}`}>
+                        View Retainer
+                      </Link>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <DetailItem
+                    label="Project"
+                    value={transaction.retainerBilling.project.name}
+                  />
+                  <DetailItem
+                    label="Month / Year"
+                    value={`${
+                      months[transaction.retainerBilling.month - 1] ||
+                      transaction.retainerBilling.month
+                    } ${transaction.retainerBilling.year}`}
+                  />
+                  <DetailItem
+                    label="Status"
+                    value={transaction.retainerBilling.status.replaceAll(
+                      "_",
+                      " "
+                    )}
+                  />
+                  <DetailItem
+                    label="Expected"
+                    value={formatCurrency(
+                      transaction.retainerBilling.expectedAmount,
+                      retainerCurrency
+                    )}
+                  />
+                  <DetailItem
+                    label="Received"
+                    value={formatCurrency(
+                      transaction.retainerBilling.receivedAmount,
+                      retainerCurrency
+                    )}
+                  />
+                  <DetailItem
+                    label="Pending"
+                    value={formatCurrency(
+                      transaction.retainerBilling.pendingAmount,
+                      retainerCurrency
+                    )}
+                  />
+                  <DetailItem
+                    label="Branch"
+                    value={
+                      transaction.retainerBilling.branch ? (
+                        <BranchBadge
+                          branch={transaction.retainerBilling.branch}
+                          showCurrency
+                        />
+                      ) : (
+                        "-"
+                      )
+                    }
+                  />
+                </CardContent>
+              </Card>
+            ) : null}
 
             <Card>
               <CardHeader>

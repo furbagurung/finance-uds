@@ -54,6 +54,21 @@ type Project = {
   clientId: string | null;
 };
 
+type RetainerBilling = {
+  id: string;
+  month: number;
+  year: number;
+  status: string;
+  expectedAmount: string | number;
+  receivedAmount: string | number;
+  pendingAmount: string | number;
+  currency: string | null;
+  projectId: string;
+  clientId: string | null;
+  project: Project;
+  client: Client | null;
+};
+
 type Transaction = {
   id: string;
   type: TransactionType;
@@ -70,6 +85,7 @@ type Transaction = {
   categoryId: string | null;
   clientId: string | null;
   projectId: string | null;
+  retainerBillingId: string | null;
   branchId: string | null;
   currency: string | null;
 };
@@ -79,6 +95,7 @@ type EditTransactionFormProps = {
   categories: Category[];
   clients: Client[];
   projects: Project[];
+  retainerBillings: RetainerBilling[];
 };
 
 const transactionTypes: TransactionType[] = [
@@ -98,6 +115,23 @@ const paymentMethods: PaymentMethod[] = [
   "OTHER",
 ];
 
+const monthLabels = new Map(
+  [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ].map((label, index) => [index + 1, label]),
+);
+
 function toDateInputValue(date: Date) {
   return new Date(date).toISOString().slice(0, 10);
 }
@@ -107,6 +141,7 @@ export function EditTransactionForm({
   categories,
   clients,
   projects,
+  retainerBillings,
 }: EditTransactionFormProps) {
   const router = useRouter();
 
@@ -122,6 +157,9 @@ export function EditTransactionForm({
   const [categoryId, setCategoryId] = useState(transaction.categoryId || "");
   const [clientId, setClientId] = useState(transaction.clientId || "");
   const [projectId, setProjectId] = useState(transaction.projectId || "");
+  const [retainerBillingId, setRetainerBillingId] = useState(
+    transaction.retainerBillingId || ""
+  );
   const [branchId, setBranchId] = useState(transaction.branchId || "");
   const [paidBy, setPaidBy] = useState(transaction.paidBy || "");
   const [doneFor, setDoneFor] = useState(transaction.doneFor || "");
@@ -143,6 +181,30 @@ export function EditTransactionForm({
     return projects.filter((project) => project.clientId === clientId);
   }, [projects, clientId]);
 
+  const filteredRetainerBillings = useMemo(() => {
+    const openOrCurrentBillings = retainerBillings.filter(
+      (billing) =>
+        billing.id === retainerBillingId ||
+        (billing.status !== "PAID" && billing.status !== "WAIVED")
+    );
+
+    if (projectId) {
+      return openOrCurrentBillings.filter(
+        (billing) =>
+          billing.projectId === projectId || billing.id === retainerBillingId
+      );
+    }
+
+    if (clientId) {
+      return openOrCurrentBillings.filter(
+        (billing) =>
+          billing.clientId === clientId || billing.id === retainerBillingId
+      );
+    }
+
+    return openOrCurrentBillings;
+  }, [clientId, projectId, retainerBillingId, retainerBillings]);
+
   function handleTypeChange(value: string) {
     const nextType = value as TransactionType;
 
@@ -153,11 +215,32 @@ export function EditTransactionForm({
       setIsBillable(false);
       setIsReimbursed(false);
     }
+
+    if (nextType !== "INCOME") {
+      setRetainerBillingId("");
+    }
   }
 
   function handleClientChange(value: string) {
     setClientId(value);
     setProjectId("");
+    setRetainerBillingId("");
+  }
+
+  function handleProjectChange(value: string) {
+    setProjectId(value);
+    setRetainerBillingId("");
+  }
+
+  function formatRetainerBillingLabel(billing: RetainerBilling) {
+    const monthLabel = monthLabels.get(billing.month) || String(billing.month);
+    const pendingAmount = Number(billing.pendingAmount || 0).toLocaleString(
+      "en-IN"
+    );
+
+    return `${billing.project?.name || "Retainer billing"} - ${monthLabel} ${
+      billing.year
+    } - Pending ${billing.currency || ""} ${pendingAmount}`;
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -181,6 +264,8 @@ export function EditTransactionForm({
           categoryId: categoryId || null,
           clientId: clientId || null,
           projectId: projectId || null,
+          retainerBillingId:
+            type === "INCOME" && retainerBillingId ? retainerBillingId : null,
           branchId: branchId || null,
           branchIdTouched: true,
           paidBy,
@@ -345,7 +430,7 @@ export function EditTransactionForm({
 
             <div className="space-y-2">
               <Label>Project</Label>
-              <Select value={projectId} onValueChange={setProjectId}>
+              <Select value={projectId} onValueChange={handleProjectChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select project" />
                 </SelectTrigger>
@@ -359,6 +444,35 @@ export function EditTransactionForm({
               </Select>
             </div>
           </div>
+
+          {type === "INCOME" ? (
+            <div className="space-y-2 rounded-xl border bg-slate-50 p-4">
+              <Label>
+                Link to Retainer Billing
+                <span className="ml-1 font-normal text-slate-400">
+                  Optional
+                </span>
+              </Label>
+              <Select
+                value={retainerBillingId || "NONE"}
+                onValueChange={(value) =>
+                  setRetainerBillingId(value === "NONE" ? "" : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select retainer billing" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">No retainer billing</SelectItem>
+                  {filteredRetainerBillings.map((billing) => (
+                    <SelectItem key={billing.id} value={billing.id}>
+                      {formatRetainerBillingLabel(billing)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
