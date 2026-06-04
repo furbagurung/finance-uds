@@ -1,5 +1,10 @@
 import "dotenv/config";
-import { PrismaClient, Role } from "@prisma/client";
+import {
+  CalendarSystem,
+  FiscalYearType,
+  PrismaClient,
+  Role,
+} from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
@@ -41,6 +46,53 @@ async function main() {
       isActive: true,
     },
   });
+
+  await prisma.branch.upsert({
+    where: {
+      code: "NP",
+    },
+    update: {
+      name: "Nepal Branch",
+      country: "Nepal",
+      currency: "NPR",
+      calendarSystem: CalendarSystem.BS,
+      fiscalYearType: FiscalYearType.NEPAL_BS_FY,
+      isActive: true,
+    },
+    create: {
+      name: "Nepal Branch",
+      code: "NP",
+      country: "Nepal",
+      currency: "NPR",
+      calendarSystem: CalendarSystem.BS,
+      fiscalYearType: FiscalYearType.NEPAL_BS_FY,
+      isActive: true,
+    },
+  });
+
+  await prisma.branch.upsert({
+    where: {
+      code: "IN",
+    },
+    update: {
+      name: "India Branch",
+      country: "India",
+      currency: "INR",
+      calendarSystem: CalendarSystem.AD,
+      fiscalYearType: FiscalYearType.INDIA_AD_FY,
+      isActive: true,
+    },
+    create: {
+      name: "India Branch",
+      code: "IN",
+      country: "India",
+      currency: "INR",
+      calendarSystem: CalendarSystem.AD,
+      fiscalYearType: FiscalYearType.INDIA_AD_FY,
+      isActive: true,
+    },
+  });
+
   const defaultCategories = [
     // Investment
     { name: "Founder Investment", type: "INVESTMENT" },
