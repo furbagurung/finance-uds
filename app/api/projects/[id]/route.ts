@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ProjectStatus } from "@prisma/client";
+import { BillingCycle, ProjectStatus, ProjectType } from "@prisma/client";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { createActivityLog } from "@/lib/activity-log";
@@ -13,6 +13,76 @@ const projectBranchSelect = {
   calendarSystem: true,
   fiscalYearType: true,
 };
+
+function parseOptionalString(value: unknown) {
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
+
+  const parsedValue = String(value).trim();
+
+  return parsedValue || null;
+}
+
+function hasOptionalValue(value: unknown) {
+  return value !== "" && value !== null && value !== undefined;
+}
+
+function parseOptionalAmount(value: unknown) {
+  if (!hasOptionalValue(value)) return null;
+
+  const amount = Number(value);
+
+  if (Number.isNaN(amount) || amount < 0) {
+    return undefined;
+  }
+
+  return amount;
+}
+
+function parseOptionalDate(value: unknown) {
+  if (!hasOptionalValue(value)) return null;
+
+  const date = new Date(String(value));
+
+  if (Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+
+  return date;
+}
+
+function parseProjectType(value: unknown) {
+  const projectType = parseOptionalString(value) as ProjectType | null;
+
+  if (!projectType) return null;
+
+  return Object.values(ProjectType).includes(projectType)
+    ? projectType
+    : undefined;
+}
+
+function parseBillingCycle(value: unknown) {
+  const billingCycle = parseOptionalString(value) as BillingCycle | null;
+
+  if (!billingCycle) return null;
+
+  return Object.values(BillingCycle).includes(billingCycle)
+    ? billingCycle
+    : undefined;
+}
+
+function getDefaultBillingCycle(projectType: ProjectType) {
+  if (projectType === ProjectType.MONTHLY_RETAINER) {
+    return BillingCycle.MONTHLY;
+  }
+
+  if (projectType === ProjectType.ONE_TIME) {
+    return BillingCycle.ONE_TIME;
+  }
+
+  return undefined;
+}
 
 type ProjectRouteProps = {
   params: Promise<{
@@ -87,6 +157,28 @@ export async function PATCH(request: Request, { params }: ProjectRouteProps) {
     const budget = body.budget ? Number(body.budget) : null;
     const startDate = body.startDate ? new Date(body.startDate) : null;
     const endDate = body.endDate ? new Date(body.endDate) : null;
+    const hasProjectTypeInput = Object.prototype.hasOwnProperty.call(
+      body,
+      "projectType"
+    );
+    const hasBillingCycleInput = Object.prototype.hasOwnProperty.call(
+      body,
+      "billingCycle"
+    );
+    const projectTypeInput = hasProjectTypeInput
+      ? parseProjectType(body.projectType)
+      : null;
+    const billingCycleInput = hasBillingCycleInput
+      ? parseBillingCycle(body.billingCycle)
+      : null;
+    const monthlyRetainerAmount = parseOptionalAmount(
+      body.monthlyRetainerAmount
+    );
+    const projectValue = parseOptionalAmount(body.projectValue);
+    const requestedCurrency = parseOptionalString(body.currency)?.toUpperCase();
+    const billingStartDate = parseOptionalDate(body.billingStartDate);
+    const billingEndDate = parseOptionalDate(body.billingEndDate);
+    const nextBillingDate = parseOptionalDate(body.nextBillingDate);
     const branchIdValue =
       body.branchId === "" ||
       body.branchId === null ||
@@ -113,6 +205,33 @@ export async function PATCH(request: Request, { params }: ProjectRouteProps) {
       );
     }
 
+    if (projectTypeInput === undefined) {
+      return NextResponse.json(
+        { message: "Invalid project type." },
+        { status: 400 }
+      );
+    }
+
+    if (billingCycleInput === undefined) {
+      return NextResponse.json(
+        { message: "Invalid billing cycle." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      monthlyRetainerAmount === undefined ||
+      projectValue === undefined ||
+      billingStartDate === undefined ||
+      billingEndDate === undefined ||
+      nextBillingDate === undefined
+    ) {
+      return NextResponse.json(
+        { message: "Billing amounts and dates must be valid." },
+        { status: 400 }
+      );
+    }
+
     const existingProject = await prisma.project.findUnique({
       where: { id },
     });
@@ -124,18 +243,21 @@ export async function PATCH(request: Request, { params }: ProjectRouteProps) {
       );
     }
 
+    let selectedBranch: { id: string; currency: string } | null = null;
+
     if (branchId) {
-      const branch = await prisma.branch.findFirst({
+      selectedBranch = await prisma.branch.findFirst({
         where: {
           id: branchId,
           isActive: true,
         },
         select: {
           id: true,
+          currency: true,
         },
       });
 
-      if (!branch) {
+      if (!selectedBranch) {
         return NextResponse.json(
           { message: "Selected branch was not found or is inactive." },
           { status: 400 }
@@ -154,6 +276,7 @@ export async function PATCH(request: Request, { params }: ProjectRouteProps) {
               select: {
                 id: true,
                 isActive: true,
+                currency: true,
               },
             },
           },
@@ -168,6 +291,28 @@ export async function PATCH(request: Request, { params }: ProjectRouteProps) {
           (!existingProject.branchId && selectedClient?.branch?.isActive
         ? selectedClient.branchId
         : null));
+    const resolvedBranch = resolvedBranchId
+      ? selectedBranch ??
+        (await prisma.branch.findFirst({
+          where: {
+            id: resolvedBranchId,
+            isActive: true,
+          },
+          select: {
+            id: true,
+            currency: true,
+          },
+        }))
+      : null;
+    const resolvedCurrency =
+      requestedCurrency ||
+      resolvedBranch?.currency ||
+      existingProject.currency ||
+      null;
+    const projectType = projectTypeInput ?? existingProject.projectType;
+    const billingCycle =
+      billingCycleInput ??
+      (hasBillingCycleInput ? null : getDefaultBillingCycle(projectType));
 
     const project = await prisma.project.update({
       where: { id },
@@ -178,6 +323,14 @@ export async function PATCH(request: Request, { params }: ProjectRouteProps) {
         startDate,
         endDate,
         status,
+        ...(hasProjectTypeInput ? { projectType } : {}),
+        ...(billingCycle ? { billingCycle } : {}),
+        monthlyRetainerAmount,
+        projectValue,
+        currency: resolvedCurrency,
+        billingStartDate,
+        billingEndDate,
+        nextBillingDate,
         branchId: resolvedBranchId,
       },
       include: {
@@ -206,6 +359,13 @@ export async function PATCH(request: Request, { params }: ProjectRouteProps) {
         branchId: project.branchId,
         branchName: project.branch?.name,
         budget: project.budget ? Number(project.budget) : null,
+        projectType: project.projectType,
+        billingCycle: project.billingCycle,
+        monthlyRetainerAmount: project.monthlyRetainerAmount
+          ? Number(project.monthlyRetainerAmount)
+          : null,
+        projectValue: project.projectValue ? Number(project.projectValue) : null,
+        currency: project.currency,
         status: project.status,
       },
     });

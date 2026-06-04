@@ -1,0 +1,9 @@
+-- AlterTable
+ALTER TABLE `project` ADD COLUMN `billingCycle` ENUM('NONE', 'MONTHLY', 'QUARTERLY', 'YEARLY', 'ONE_TIME') NOT NULL DEFAULT 'ONE_TIME',
+    ADD COLUMN `billingEndDate` DATETIME(3) NULL,
+    ADD COLUMN `billingStartDate` DATETIME(3) NULL,
+    ADD COLUMN `currency` VARCHAR(191) NULL,
+    ADD COLUMN `monthlyRetainerAmount` DECIMAL(12, 2) NULL,
+    ADD COLUMN `nextBillingDate` DATETIME(3) NULL,
+    ADD COLUMN `projectType` ENUM('MONTHLY_RETAINER', 'ONE_TIME', 'ONGOING', 'INTERNAL') NOT NULL DEFAULT 'ONE_TIME',
+    ADD COLUMN `projectValue` DECIMAL(12, 2) NULL;

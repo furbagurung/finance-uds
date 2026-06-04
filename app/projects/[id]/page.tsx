@@ -33,6 +33,27 @@ function formatCurrency(amount: number) {
   return `Rs. ${amount.toLocaleString("en-IN")}`;
 }
 
+function formatMoney(amount: unknown, currency?: string | null) {
+  if (!amount) return "-";
+
+  const amountNumber = Number(amount);
+  const currencyCode = currency || "NPR";
+
+  try {
+    return new Intl.NumberFormat("en-NP", {
+      style: "currency",
+      currency: currencyCode,
+      maximumFractionDigits: 2,
+    }).format(amountNumber);
+  } catch {
+    return `${currencyCode} ${amountNumber.toLocaleString("en-IN")}`;
+  }
+}
+
+function formatEnumLabel(value: string) {
+  return value.replaceAll("_", " ");
+}
+
 function formatDate(date: Date | null) {
   if (!date) return "-";
 
@@ -264,6 +285,99 @@ export default async function ProjectDetailPage({
               </p>
               <p className="mt-1 font-medium">
                 {project.createdBy?.name || "-"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Billing</CardTitle>
+            <CardDescription>
+              Project billing setup for retainers and one-time work.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Project Type
+              </p>
+              <div className="mt-1">
+                <Badge variant="outline">
+                  {formatEnumLabel(project.projectType)}
+                </Badge>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Billing Cycle
+              </p>
+              <div className="mt-1">
+                <Badge variant="secondary">
+                  {formatEnumLabel(project.billingCycle)}
+                </Badge>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Monthly Retainer Amount
+              </p>
+              <p className="mt-1 font-medium">
+                {formatMoney(
+                  project.monthlyRetainerAmount,
+                  project.currency || project.branch?.currency,
+                )}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Project Value
+              </p>
+              <p className="mt-1 font-medium">
+                {formatMoney(
+                  project.projectValue,
+                  project.currency || project.branch?.currency,
+                )}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Currency
+              </p>
+              <p className="mt-1 font-medium">
+                {project.currency || project.branch?.currency || "-"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Billing Start Date
+              </p>
+              <p className="mt-1 font-medium">
+                {formatDate(project.billingStartDate)}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Billing End Date
+              </p>
+              <p className="mt-1 font-medium">
+                {formatDate(project.billingEndDate)}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium uppercase text-slate-500">
+                Next Billing Date
+              </p>
+              <p className="mt-1 font-medium">
+                {formatDate(project.nextBillingDate)}
               </p>
             </div>
           </CardContent>

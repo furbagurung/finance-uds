@@ -27,6 +27,27 @@ function formatCurrency(amount: unknown) {
   return `Rs. ${Number(amount).toLocaleString("en-IN")}`;
 }
 
+function formatBillingMoney(amount: unknown, currency?: string | null) {
+  if (!amount) return "-";
+
+  const amountNumber = Number(amount);
+  const currencyCode = currency || "NPR";
+
+  try {
+    return new Intl.NumberFormat("en-NP", {
+      style: "currency",
+      currency: currencyCode,
+      maximumFractionDigits: 2,
+    }).format(amountNumber);
+  } catch {
+    return `${currencyCode} ${amountNumber.toLocaleString("en-IN")}`;
+  }
+}
+
+function formatEnumLabel(value: string) {
+  return value.replaceAll("_", " ");
+}
+
 function formatDate(date: Date | null) {
   if (!date) return "-";
 
@@ -140,12 +161,19 @@ export default async function ProjectsPage() {
                   projects.map((project) => (
                     <TableRow key={project.id}>
                       <TableCell className="font-medium">
-                        <Link
-                          href={`/projects/${project.id}`}
-                          className="hover:text-orange-600 hover:underline"
-                        >
-                          {project.name}
-                        </Link>
+                        <div className="space-y-1">
+                          <Link
+                            href={`/projects/${project.id}`}
+                            className="hover:text-orange-600 hover:underline"
+                          >
+                            {project.name}
+                          </Link>
+                          <div>
+                            <Badge variant="outline" className="text-[10px]">
+                              {formatEnumLabel(project.projectType)}
+                            </Badge>
+                          </div>
+                        </div>
                       </TableCell>
 
                       <TableCell>{project.client?.name || "-"}</TableCell>
@@ -158,7 +186,19 @@ export default async function ProjectsPage() {
                         )}
                       </TableCell>
 
-                      <TableCell>{formatCurrency(project.budget)}</TableCell>
+                      <TableCell>
+                        <div>{formatCurrency(project.budget)}</div>
+                        {project.projectType === "MONTHLY_RETAINER" &&
+                        project.monthlyRetainerAmount ? (
+                          <div className="mt-1 text-xs text-slate-500">
+                            {formatBillingMoney(
+                              project.monthlyRetainerAmount,
+                              project.currency || project.branch?.currency,
+                            )}
+                            /mo
+                          </div>
+                        ) : null}
+                      </TableCell>
 
                       <TableCell>
                         <div className="text-sm">

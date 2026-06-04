@@ -44,8 +44,15 @@ export default async function EditProjectPage({
   const plainProject = {
     ...project,
     budget: project.budget ? Number(project.budget) : null,
+    monthlyRetainerAmount: project.monthlyRetainerAmount
+      ? Number(project.monthlyRetainerAmount)
+      : null,
+    projectValue: project.projectValue ? Number(project.projectValue) : null,
     startDate: project.startDate,
     endDate: project.endDate,
+    billingStartDate: project.billingStartDate,
+    billingEndDate: project.billingEndDate,
+    nextBillingDate: project.nextBillingDate,
   };
 
   return (

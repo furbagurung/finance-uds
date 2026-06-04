@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BranchSelectField } from "@/components/branch-select-field";
+import {
+  BranchSelectField,
+  type BranchOption,
+} from "@/components/branch-select-field";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,12 +32,29 @@ type Client = {
 };
 
 type ProjectStatus = "ACTIVE" | "COMPLETED" | "ON_HOLD" | "CANCELLED";
+type ProjectType = "MONTHLY_RETAINER" | "ONE_TIME" | "ONGOING" | "INTERNAL";
+type BillingCycle = "NONE" | "MONTHLY" | "QUARTERLY" | "YEARLY" | "ONE_TIME";
 
 const projectStatuses: ProjectStatus[] = [
   "ACTIVE",
   "COMPLETED",
   "ON_HOLD",
   "CANCELLED",
+];
+
+const projectTypes: ProjectType[] = [
+  "MONTHLY_RETAINER",
+  "ONE_TIME",
+  "ONGOING",
+  "INTERNAL",
+];
+
+const billingCycles: BillingCycle[] = [
+  "NONE",
+  "MONTHLY",
+  "QUARTERLY",
+  "YEARLY",
+  "ONE_TIME",
 ];
 
 type CreatedProject = {
@@ -74,6 +94,7 @@ export function ProjectForm({
   const router = useRouter();
 
   const [clients, setClients] = useState<Client[]>([]);
+  const [branches, setBranches] = useState<BranchOption[]>([]);
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState(defaultClientId);
   const [budget, setBudget] = useState("");
@@ -82,6 +103,15 @@ export function ProjectForm({
   const [branchId, setBranchId] = useState("");
   const [branchTouched, setBranchTouched] = useState(false);
   const [status, setStatus] = useState<ProjectStatus>("ACTIVE");
+  const [projectType, setProjectType] = useState<ProjectType>("ONE_TIME");
+  const [billingCycle, setBillingCycle] =
+    useState<BillingCycle>("ONE_TIME");
+  const [monthlyRetainerAmount, setMonthlyRetainerAmount] = useState("");
+  const [projectValue, setProjectValue] = useState("");
+  const [currency, setCurrency] = useState("");
+  const [billingStartDate, setBillingStartDate] = useState("");
+  const [billingEndDate, setBillingEndDate] = useState("");
+  const [nextBillingDate, setNextBillingDate] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -100,6 +130,25 @@ export function ProjectForm({
   }, []);
 
   useEffect(() => {
+    let ignore = false;
+
+    async function loadBranches() {
+      const response = await fetch("/api/branches");
+      const data = await response.json();
+
+      if (!ignore && response.ok) {
+        setBranches(data.branches || []);
+      }
+    }
+
+    loadBranches();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (branchTouched || branchId || !clientId) return;
 
     const selectedClient = clients.find((client) => client.id === clientId);
@@ -109,6 +158,16 @@ export function ProjectForm({
     }
   }, [branchId, branchTouched, clientId, clients]);
 
+  useEffect(() => {
+    if (!branchId || currency) return;
+
+    const selectedBranch = branches.find((branch) => branch.id === branchId);
+
+    if (selectedBranch?.currency) {
+      setCurrency(selectedBranch.currency);
+    }
+  }, [branchId, branches, currency]);
+
   function handleClientChange(nextClientId: string) {
     setClientId(nextClientId);
   }
@@ -116,6 +175,28 @@ export function ProjectForm({
   function handleBranchChange(nextBranchId: string) {
     setBranchTouched(true);
     setBranchId(nextBranchId);
+
+    const selectedBranch = branches.find((branch) => branch.id === nextBranchId);
+
+    if (!currency && selectedBranch?.currency) {
+      setCurrency(selectedBranch.currency);
+    }
+  }
+
+  function handleProjectTypeChange(nextProjectType: ProjectType) {
+    setProjectType(nextProjectType);
+
+    if (nextProjectType === "MONTHLY_RETAINER") {
+      setBillingCycle("MONTHLY");
+      return;
+    }
+
+    if (nextProjectType === "ONE_TIME") {
+      setBillingCycle("ONE_TIME");
+    }
+
+    setMonthlyRetainerAmount("");
+    setNextBillingDate("");
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -138,6 +219,20 @@ export function ProjectForm({
           branchId,
           branchIdTouched: branchTouched,
           status,
+          projectType,
+          billingCycle,
+          monthlyRetainerAmount: projectType === "MONTHLY_RETAINER" && monthlyRetainerAmount
+            ? Number(monthlyRetainerAmount)
+            : null,
+          projectValue:
+            projectType !== "INTERNAL" && projectValue
+              ? Number(projectValue)
+              : null,
+          currency: currency || null,
+          billingStartDate: billingStartDate || null,
+          billingEndDate: billingEndDate || null,
+          nextBillingDate:
+            projectType === "MONTHLY_RETAINER" ? nextBillingDate || null : null,
         }),
       });
 
@@ -211,6 +306,7 @@ export function ProjectForm({
               onValueChange={handleBranchChange}
               placeholder="Select branch"
               showCurrency
+              branches={branches}
               allowUnassigned
               unassignedLabel="Not assigned"
               triggerClassName="h-10 w-full"
@@ -266,6 +362,128 @@ export function ProjectForm({
                 value={endDate}
                 onChange={(event) => setEndDate(event.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-950">
+                Billing Setup
+              </h3>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Project Type</Label>
+                <Select
+                  value={projectType}
+                  onValueChange={(value) =>
+                    handleProjectTypeChange(value as ProjectType)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select project type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projectTypes.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {item.replaceAll("_", " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Billing Cycle</Label>
+                <Select
+                  value={billingCycle}
+                  onValueChange={(value) =>
+                    setBillingCycle(value as BillingCycle)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select billing cycle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {billingCycles.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {item.replaceAll("_", " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {projectType === "MONTHLY_RETAINER" ? (
+                <div className="space-y-2">
+                  <Label>Monthly Retainer Amount</Label>
+                  <Input
+                    type="number"
+                    value={monthlyRetainerAmount}
+                    onChange={(event) =>
+                      setMonthlyRetainerAmount(event.target.value)
+                    }
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              ) : null}
+
+              {projectType !== "INTERNAL" ? (
+                <div className="space-y-2">
+                  <Label>Project Value</Label>
+                  <Input
+                    type="number"
+                    value={projectValue}
+                    onChange={(event) => setProjectValue(event.target.value)}
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              ) : null}
+
+              <div className="space-y-2">
+                <Label>Currency</Label>
+                <Input
+                  value={currency}
+                  onChange={(event) =>
+                    setCurrency(event.target.value.toUpperCase())
+                  }
+                  placeholder="NPR"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Billing Start Date</Label>
+                <Input
+                  type="date"
+                  value={billingStartDate}
+                  onChange={(event) => setBillingStartDate(event.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Billing End Date</Label>
+                <Input
+                  type="date"
+                  value={billingEndDate}
+                  onChange={(event) => setBillingEndDate(event.target.value)}
+                />
+              </div>
+
+              {projectType === "MONTHLY_RETAINER" ? (
+                <div className="space-y-2">
+                  <Label>Next Billing Date</Label>
+                  <Input
+                    type="date"
+                    value={nextBillingDate}
+                    onChange={(event) => setNextBillingDate(event.target.value)}
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
 
