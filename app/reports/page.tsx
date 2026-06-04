@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { BarChart3, BriefcaseBusiness, Users } from "lucide-react";
 import { BranchFilter } from "@/components/branch-filter";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { FiscalYearFilter } from "@/components/fiscal-year-filter";
 import {
   Card,
   CardContent,
@@ -11,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/current-user";
+import { prisma } from "@/lib/prisma";
 
 const reports = [
   {
@@ -39,15 +41,28 @@ const reports = [
 type ReportsPageProps = {
   searchParams: Promise<{
     branchId?: string;
+    fiscalYear?: string;
   }>;
 };
 
-function buildReportHref(href: string, branchId: string) {
-  if (!branchId) {
+function buildReportHref(href: string, branchId: string, fiscalYear: string) {
+  const searchParams = new URLSearchParams();
+
+  if (branchId) {
+    searchParams.set("branchId", branchId);
+  }
+
+  if (fiscalYear) {
+    searchParams.set("fiscalYear", fiscalYear);
+  }
+
+  const query = searchParams.toString();
+
+  if (!query) {
     return href;
   }
 
-  return `${href}?${new URLSearchParams({ branchId }).toString()}`;
+  return `${href}?${query}`;
 }
 
 export default async function ReportsPage({ searchParams }: ReportsPageProps) {
@@ -60,6 +75,20 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
   const selectedBranchId =
     params.branchId && params.branchId !== "ALL" ? params.branchId : "";
+  const selectedFiscalYear = params.fiscalYear || "";
+
+  const selectedBranch = selectedBranchId
+    ? await prisma.branch.findUnique({
+        where: {
+          id: selectedBranchId,
+        },
+        select: {
+          id: true,
+          calendarSystem: true,
+          fiscalYearType: true,
+        },
+      })
+    : null;
 
   return (
     <DashboardShell user={user}>
@@ -73,7 +102,13 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             </p>
           </div>
 
-          <BranchFilter basePath="/reports" />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <BranchFilter basePath="/reports" />
+            <FiscalYearFilter
+              basePath="/reports"
+              branchFiscalYearType={selectedBranch?.fiscalYearType}
+            />
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -83,7 +118,11 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
             return (
               <Link
                 key={report.href}
-                href={buildReportHref(report.href, selectedBranchId)}
+                href={buildReportHref(
+                  report.href,
+                  selectedBranchId,
+                  selectedFiscalYear,
+                )}
               >
                 <Card className="h-full transition hover:bg-slate-50">
                   <CardHeader>

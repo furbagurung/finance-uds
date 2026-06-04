@@ -1,4 +1,5 @@
 const INDIA_FISCAL_YEAR_PATTERN = /^FY\s+(\d{4})\/(\d{2})$/;
+const CALENDAR_YEAR_PATTERN = /^\d{4}$/;
 
 export type FiscalYearBranch = {
   fiscalYearType?: string | null;
@@ -14,6 +15,13 @@ function createUtcDate(year: number, monthIndex: number, day: number) {
   return new Date(Date.UTC(year, monthIndex, day));
 }
 
+export function getFiscalYearExclusiveEndDate(range: FiscalYearRange) {
+  const exclusiveEndDate = new Date(range.endDate);
+  exclusiveEndDate.setUTCDate(exclusiveEndDate.getUTCDate() + 1);
+
+  return exclusiveEndDate;
+}
+
 function formatIndiaFiscalYear(startYear: number) {
   const endYearSuffix = String((startYear + 1) % 100).padStart(2, "0");
 
@@ -26,6 +34,15 @@ function getCalendarYearOptions() {
   return Array.from({ length: 4 }, (_, index) =>
     String(currentYear - 2 + index),
   );
+}
+
+function getCalendarYearRange(calendarYearLabel: string): FiscalYearRange {
+  const year = Number(calendarYearLabel);
+
+  return {
+    startDate: createUtcDate(year, 0, 1),
+    endDate: createUtcDate(year, 11, 31),
+  };
 }
 
 export function getIndiaFiscalYearRange(
@@ -79,6 +96,44 @@ export function getFiscalYearOptionsForBranch(branch: FiscalYearBranch) {
   }
 
   return getCalendarYearOptions();
+}
+
+export function getFiscalYearDateRangeForBranch(
+  fiscalYearLabel?: string,
+  branch?: FiscalYearBranch,
+): FiscalYearRange | null {
+  const normalizedFiscalYearLabel = fiscalYearLabel?.trim();
+
+  if (!normalizedFiscalYearLabel) {
+    return null;
+  }
+
+  if (branch?.fiscalYearType === "NEPAL_BS_FY") {
+    // TODO: Apply Nepal BS fiscal-year filtering only after adding a reliable
+    // BS-to-AD conversion library or explicit BS FY to AD date mapping.
+    // Persisted database dates remain AD/Gregorian.
+    return null;
+  }
+
+  if (branch?.fiscalYearType === "CALENDAR_YEAR") {
+    return CALENDAR_YEAR_PATTERN.test(normalizedFiscalYearLabel)
+      ? getCalendarYearRange(normalizedFiscalYearLabel)
+      : null;
+  }
+
+  if (
+    branch?.fiscalYearType === "INDIA_AD_FY" ||
+    branch?.fiscalYearType === undefined ||
+    branch?.fiscalYearType === null
+  ) {
+    try {
+      return getIndiaFiscalYearRange(normalizedFiscalYearLabel);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
 }
 
 export function getFiscalYearLabelForDate(

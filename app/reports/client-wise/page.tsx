@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { BranchBadge } from "@/components/branch-badge";
 import { BranchFilter } from "@/components/branch-filter";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { FiscalYearFilter } from "@/components/fiscal-year-filter";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -20,6 +21,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getCurrentUser } from "@/lib/current-user";
+import {
+  getFiscalYearDateRangeForBranch,
+  getFiscalYearExclusiveEndDate,
+} from "@/lib/fiscal-year";
 import { prisma } from "@/lib/prisma";
 
 function formatCurrency(amount: number) {
@@ -29,6 +34,7 @@ function formatCurrency(amount: number) {
 type ClientWiseReportPageProps = {
   searchParams: Promise<{
     branchId?: string;
+    fiscalYear?: string;
   }>;
 };
 
@@ -54,6 +60,22 @@ export default async function ClientWiseReportPage({
 
   const selectedBranchId =
     params.branchId && params.branchId !== "ALL" ? params.branchId : "";
+  const selectedBranch = selectedBranchId
+    ? await prisma.branch.findUnique({
+        where: {
+          id: selectedBranchId,
+        },
+        select: {
+          id: true,
+          calendarSystem: true,
+          fiscalYearType: true,
+        },
+      })
+    : null;
+  const fiscalYearDateRange = getFiscalYearDateRangeForBranch(
+    params.fiscalYear,
+    selectedBranch,
+  );
 
   const clients = await prisma.client.findMany({
     where: {
@@ -71,6 +93,14 @@ export default async function ClientWiseReportPage({
           type: "EXPENSE",
           expenseScope: "CLIENT",
           ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
+          ...(fiscalYearDateRange
+            ? {
+                date: {
+                  gte: fiscalYearDateRange.startDate,
+                  lt: getFiscalYearExclusiveEndDate(fiscalYearDateRange),
+                },
+              }
+            : {}),
         },
         select: {
           amount: true,
@@ -124,7 +154,13 @@ export default async function ClientWiseReportPage({
             </p>
           </div>
 
-          <BranchFilter basePath="/reports/client-wise" />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <BranchFilter basePath="/reports/client-wise" />
+            <FiscalYearFilter
+              basePath="/reports/client-wise"
+              branchFiscalYearType={selectedBranch?.fiscalYearType}
+            />
+          </div>
         </div>
 
         <Card>

@@ -19,6 +19,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getCurrentUser } from "@/lib/current-user";
+import {
+  getFiscalYearDateRangeForBranch,
+  getFiscalYearExclusiveEndDate,
+} from "@/lib/fiscal-year";
 import { prisma } from "@/lib/prisma";
 
 function formatCurrency(amount: number) {
@@ -61,8 +65,32 @@ export default async function MonthlyReportPage({
 
   const selectedBranchId =
     params.branchId && params.branchId !== "ALL" ? params.branchId : "";
+  const selectedBranch = selectedBranchId
+    ? await prisma.branch.findUnique({
+        where: {
+          id: selectedBranchId,
+        },
+        select: {
+          id: true,
+          calendarSystem: true,
+          fiscalYearType: true,
+        },
+      })
+    : null;
+  const fiscalYearDateRange = getFiscalYearDateRangeForBranch(
+    params.fiscalYear,
+    selectedBranch,
+  );
   const transactionWhere: Prisma.TransactionWhereInput = {
     ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
+    ...(fiscalYearDateRange
+      ? {
+          date: {
+            gte: fiscalYearDateRange.startDate,
+            lt: getFiscalYearExclusiveEndDate(fiscalYearDateRange),
+          },
+        }
+      : {}),
   };
 
   const transactions = await prisma.transaction.findMany({
@@ -183,7 +211,10 @@ export default async function MonthlyReportPage({
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <BranchFilter basePath="/reports/monthly" />
-            <FiscalYearFilter basePath="/reports/monthly" />
+            <FiscalYearFilter
+              basePath="/reports/monthly"
+              branchFiscalYearType={selectedBranch?.fiscalYearType}
+            />
           </div>
         </div>
 
