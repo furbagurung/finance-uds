@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
+import { BranchFilter } from "@/components/branch-filter";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { FiscalYearFilter } from "@/components/fiscal-year-filter";
 import {
   Card,
   CardContent,
@@ -39,14 +42,31 @@ function getMonthLabel(monthKey: string) {
   }).format(date);
 }
 
-export default async function MonthlyReportPage() {
+type MonthlyReportPageProps = {
+  searchParams: Promise<{
+    branchId?: string;
+    fiscalYear?: string;
+  }>;
+};
+
+export default async function MonthlyReportPage({
+  searchParams,
+}: MonthlyReportPageProps) {
+  const params = await searchParams;
   const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
 
+  const selectedBranchId =
+    params.branchId && params.branchId !== "ALL" ? params.branchId : "";
+  const transactionWhere: Prisma.TransactionWhereInput = {
+    ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
+  };
+
   const transactions = await prisma.transaction.findMany({
+    where: transactionWhere,
     orderBy: {
       date: "desc",
     },
@@ -150,14 +170,21 @@ export default async function MonthlyReportPage() {
   return (
     <DashboardShell user={user}>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-950">
-            Monthly Report
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Review month-wise investment, income, expenses, withdrawals, and
-            recoverable client costs.
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-950">
+              Monthly Report
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Review month-wise investment, income, expenses, withdrawals, and
+              recoverable client costs.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <BranchFilter basePath="/reports/monthly" />
+            <FiscalYearFilter basePath="/reports/monthly" />
+          </div>
         </div>
 
         <Card>

@@ -1,4 +1,7 @@
 import { redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
+import { BranchBadge } from "@/components/branch-badge";
+import { BranchFilter } from "@/components/branch-filter";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -23,20 +26,51 @@ function formatCurrency(amount: number) {
   return `Rs. ${amount.toLocaleString("en-IN")}`;
 }
 
-export default async function ProjectWiseReportPage() {
+type ProjectWiseReportPageProps = {
+  searchParams: Promise<{
+    branchId?: string;
+  }>;
+};
+
+const branchSelect = {
+  id: true,
+  name: true,
+  code: true,
+  country: true,
+  currency: true,
+  calendarSystem: true,
+  fiscalYearType: true,
+} satisfies Prisma.BranchSelect;
+
+export default async function ProjectWiseReportPage({
+  searchParams,
+}: ProjectWiseReportPageProps) {
+  const params = await searchParams;
   const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
 
+  const selectedBranchId =
+    params.branchId && params.branchId !== "ALL" ? params.branchId : "";
+
   const projects = await prisma.project.findMany({
+    where: {
+      ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
+    },
     orderBy: {
       createdAt: "desc",
     },
     include: {
       client: true,
+      branch: {
+        select: branchSelect,
+      },
       transactions: {
+        where: {
+          ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
+        },
         select: {
           type: true,
           amount: true,
@@ -60,6 +94,7 @@ export default async function ProjectWiseReportPage() {
       id: project.id,
       name: project.name,
       clientName: project.client?.name || "-",
+      branch: project.branch,
       budget: project.budget ? Number(project.budget) : 0,
       totalIncome,
       totalExpenses,
@@ -72,13 +107,17 @@ export default async function ProjectWiseReportPage() {
   return (
     <DashboardShell user={user}>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-950">
-            Project-wise Report
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Track project budget, income, expenses, and profitability.
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-950">
+              Project-wise Report
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Track project budget, income, expenses, and profitability.
+            </p>
+          </div>
+
+          <BranchFilter basePath="/reports/project-wise" />
         </div>
 
         <Card>
@@ -119,6 +158,14 @@ export default async function ProjectWiseReportPage() {
                     <TableRow key={row.id}>
                       <TableCell className="font-medium">
                         {row.name}
+                        {row.branch ? (
+                          <div className="mt-1.5">
+                            <BranchBadge
+                              branch={row.branch}
+                              className="text-[10px] leading-none"
+                            />
+                          </div>
+                        ) : null}
                       </TableCell>
 
                       <TableCell>{row.clientName}</TableCell>

@@ -1,4 +1,7 @@
 import { redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
+import { BranchBadge } from "@/components/branch-badge";
+import { BranchFilter } from "@/components/branch-filter";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -23,22 +26,51 @@ function formatCurrency(amount: number) {
   return `Rs. ${amount.toLocaleString("en-IN")}`;
 }
 
-export default async function ClientWiseReportPage() {
+type ClientWiseReportPageProps = {
+  searchParams: Promise<{
+    branchId?: string;
+  }>;
+};
+
+const branchSelect = {
+  id: true,
+  name: true,
+  code: true,
+  country: true,
+  currency: true,
+  calendarSystem: true,
+  fiscalYearType: true,
+} satisfies Prisma.BranchSelect;
+
+export default async function ClientWiseReportPage({
+  searchParams,
+}: ClientWiseReportPageProps) {
+  const params = await searchParams;
   const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
 
+  const selectedBranchId =
+    params.branchId && params.branchId !== "ALL" ? params.branchId : "";
+
   const clients = await prisma.client.findMany({
+    where: {
+      ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
+    },
     orderBy: {
       name: "asc",
     },
     include: {
+      branch: {
+        select: branchSelect,
+      },
       transactions: {
         where: {
           type: "EXPENSE",
           expenseScope: "CLIENT",
+          ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
         },
         select: {
           amount: true,
@@ -69,6 +101,7 @@ export default async function ClientWiseReportPage() {
       id: client.id,
       name: client.name,
       companyName: client.companyName,
+      branch: client.branch,
       totalExpenses,
       billableExpenses,
       reimbursedExpenses,
@@ -80,14 +113,18 @@ export default async function ClientWiseReportPage() {
   return (
     <DashboardShell user={user}>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-950">
-            Client-wise Report
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            View client expenses, billable costs, reimbursements, and recoverable
-            amounts.
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-950">
+              Client-wise Report
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              View client expenses, billable costs, reimbursements, and recoverable
+              amounts.
+            </p>
+          </div>
+
+          <BranchFilter basePath="/reports/client-wise" />
         </div>
 
         <Card>
@@ -131,6 +168,14 @@ export default async function ClientWiseReportPage() {
                         {row.companyName ? (
                           <div className="text-xs text-slate-500">
                             {row.name}
+                          </div>
+                        ) : null}
+                        {row.branch ? (
+                          <div className="mt-1.5">
+                            <BranchBadge
+                              branch={row.branch}
+                              className="text-[10px] leading-none"
+                            />
                           </div>
                         ) : null}
                       </TableCell>

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
+import { BranchBadge } from "@/components/branch-badge";
+import { BranchFilter } from "@/components/branch-filter";
 import { getCurrentUser } from "@/lib/current-user";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { DashboardCashflowChart } from "@/components/dashboard-cashflow-chart";
@@ -37,14 +40,56 @@ function getMonthKey(date: Date) {
   return date.toLocaleString("en-US", { month: "short" });
 }
 
-export default async function DashboardPage() {
+type DashboardPageProps = {
+  searchParams: Promise<{
+    branchId?: string;
+  }>;
+};
+
+const branchSelect = {
+  id: true,
+  name: true,
+  code: true,
+  country: true,
+  currency: true,
+  calendarSystem: true,
+  fiscalYearType: true,
+} satisfies Prisma.BranchSelect;
+
+function buildTransactionsHref(
+  params: Record<string, string | undefined>,
+) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) {
+      searchParams.set(key, value);
+    }
+  });
+
+  const query = searchParams.toString();
+
+  return query ? `/transactions?${query}` : "/transactions";
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: DashboardPageProps) {
+  const params = await searchParams;
   const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
 
+  const selectedBranchId =
+    params.branchId && params.branchId !== "ALL" ? params.branchId : "";
+  const transactionWhere: Prisma.TransactionWhereInput = {
+    ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
+  };
+
   const transactions = await prisma.transaction.findMany({
+    where: transactionWhere,
     select: {
       type: true,
       amount: true,
@@ -132,6 +177,7 @@ export default async function DashboardPage() {
     };
   });
   const recentTransactions = await prisma.transaction.findMany({
+    where: transactionWhere,
     orderBy: {
       date: "desc",
     },
@@ -139,6 +185,9 @@ export default async function DashboardPage() {
     include: {
       client: true,
       project: true,
+      branch: {
+        select: branchSelect,
+      },
     },
   });
 
@@ -161,7 +210,9 @@ export default async function DashboardPage() {
       title: "Cash Balance",
       value: cashBalance,
       icon: Wallet,
-      href: "/transactions",
+      href: buildTransactionsHref({
+        branchId: selectedBranchId,
+      }),
       tone: "dark",
       helper: "Available business cash",
     },
@@ -169,7 +220,10 @@ export default async function DashboardPage() {
       title: "Total Income",
       value: totalIncome,
       icon: ArrowUpRight,
-      href: "/transactions?type=INCOME",
+      href: buildTransactionsHref({
+        type: "INCOME",
+        branchId: selectedBranchId,
+      }),
       tone: "green",
       helper: "All recorded income",
     },
@@ -177,7 +231,10 @@ export default async function DashboardPage() {
       title: "Total Expenses",
       value: totalExpenses,
       icon: ArrowDownLeft,
-      href: "/transactions?type=EXPENSE",
+      href: buildTransactionsHref({
+        type: "EXPENSE",
+        branchId: selectedBranchId,
+      }),
       tone: "orange",
       helper: "Company + client expenses",
     },
@@ -185,7 +242,10 @@ export default async function DashboardPage() {
       title: "Recoverable",
       value: recoverableClientExpenses,
       icon: BadgeDollarSign,
-      href: "/reports/client-wise",
+      href: buildTransactionsHref({
+        type: "EXPENSE",
+        branchId: selectedBranchId,
+      }),
       tone: "yellow",
       helper: "Billable client expenses",
     },
@@ -227,6 +287,8 @@ export default async function DashboardPage() {
     Soft premium pill buttons inspired by SaaS action buttons.
 */}
           <div className="flex flex-wrap items-center gap-3">
+            <BranchFilter basePath="/dashboard" />
+
             <TransactionCreateModal
               defaultType="INCOME"
               triggerLabel="Add Income"
@@ -484,9 +546,17 @@ export default async function DashboardPage() {
                             >
                               {transaction.doneFor || transaction.title}
                             </Link>
-                            <p className="mt-0.5 text-xs text-slate-500">
-                              {transaction.project?.name || "No project linked"}
-                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                              <span className="text-xs text-slate-500">
+                                {transaction.project?.name || "No project linked"}
+                              </span>
+                              {transaction.branch ? (
+                                <BranchBadge
+                                  branch={transaction.branch}
+                                  className="text-[10px] leading-none"
+                                />
+                              ) : null}
+                            </div>
                           </TableCell>
                           <TableCell className="text-slate-600">
                             {transaction.client?.name || "-"}
