@@ -4,6 +4,7 @@ import {
   PaymentMethod,
   PayrollStatus,
   Prisma,
+  RetainerBillingStatus,
   TransactionType,
 } from "@prisma/client";
 import { getCurrentUser } from "@/lib/current-user";
@@ -28,6 +29,25 @@ function parseOptionalString(value: unknown) {
   const parsedValue = String(value).trim();
 
   return parsedValue || null;
+}
+
+function calculateRetainerPendingAmount(
+  expectedAmount: number,
+  receivedAmount: number,
+) {
+  return Math.max(expectedAmount - receivedAmount, 0);
+}
+
+function calculateRetainerStatus(expectedAmount: number, receivedAmount: number) {
+  if (receivedAmount <= 0) {
+    return RetainerBillingStatus.PENDING;
+  }
+
+  if (receivedAmount < expectedAmount) {
+    return RetainerBillingStatus.PARTIALLY_PAID;
+  }
+
+  return RetainerBillingStatus.PAID;
 }
 
 export async function GET(request: Request) {
@@ -100,6 +120,11 @@ export async function GET(request: Request) {
         category: true,
         client: true,
         project: true,
+        retainerBilling: {
+          include: {
+            project: true,
+          },
+        },
         branch: {
           select: branchSelect,
         },
@@ -159,6 +184,7 @@ export async function POST(request: Request) {
     const categoryId = body.categoryId ? String(body.categoryId) : null;
     const clientId = body.clientId ? String(body.clientId) : null;
     const projectId = body.projectId ? String(body.projectId) : null;
+    const retainerBillingId = parseOptionalString(body.retainerBillingId);
     const branchId = parseOptionalString(body.branchId);
     const branchIdTouched = Boolean(body.branchIdTouched);
     const requestedCurrency = parseOptionalString(body.currency)?.toUpperCase();
@@ -205,6 +231,54 @@ export async function POST(request: Request) {
         { message: "Expense scope is required for expenses." },
         { status: 400 }
       );
+    }
+
+    let retainerBilling: {
+      id: string;
+      projectId: string;
+      clientId: string | null;
+      branchId: string | null;
+      expectedAmount: Prisma.Decimal;
+      receivedAmount: Prisma.Decimal;
+      status: RetainerBillingStatus;
+    } | null = null;
+
+    if (retainerBillingId) {
+      if (type !== TransactionType.INCOME) {
+        return NextResponse.json(
+          { message: "Only income transactions can be linked to retainer billing." },
+          { status: 400 }
+        );
+      }
+
+      retainerBilling = await prisma.retainerBilling.findUnique({
+        where: {
+          id: retainerBillingId,
+        },
+        select: {
+          id: true,
+          projectId: true,
+          clientId: true,
+          branchId: true,
+          expectedAmount: true,
+          receivedAmount: true,
+          status: true,
+        },
+      });
+
+      if (!retainerBilling) {
+        return NextResponse.json(
+          { message: "Retainer billing not found." },
+          { status: 404 }
+        );
+      }
+
+      if (retainerBilling.status === RetainerBillingStatus.WAIVED) {
+        return NextResponse.json(
+          { message: "Waived retainer billings cannot receive linked payments." },
+          { status: 400 }
+        );
+      }
     }
 
     let selectedBranch: { id: string; currency: string } | null = null;
@@ -424,6 +498,7 @@ export async function POST(request: Request) {
           categoryId,
           clientId,
           projectId,
+          retainerBillingId: retainerBilling?.id ?? null,
           branchId: resolvedBranchId,
           currency: resolvedCurrency,
           createdById: user.id,
@@ -443,6 +518,7 @@ export async function POST(request: Request) {
           category: true,
           client: true,
           project: true,
+          retainerBilling: true,
           branch: {
             select: branchSelect,
           },
@@ -475,6 +551,32 @@ export async function POST(request: Request) {
             branchId: resolvedBranchId,
             currency: resolvedCurrency,
             transactionId: createdTransaction.id,
+          },
+        });
+      }
+
+      if (retainerBilling) {
+        const nextReceivedAmount =
+          Number(retainerBilling.receivedAmount) + amount;
+        const expectedAmount = Number(retainerBilling.expectedAmount);
+        const pendingAmount = calculateRetainerPendingAmount(
+          expectedAmount,
+          nextReceivedAmount,
+        );
+        const nextStatus = calculateRetainerStatus(
+          expectedAmount,
+          nextReceivedAmount,
+        );
+
+        await tx.retainerBilling.update({
+          where: {
+            id: retainerBilling.id,
+          },
+          data: {
+            receivedAmount: nextReceivedAmount,
+            pendingAmount,
+            status: nextStatus,
+            paidDate: nextStatus === RetainerBillingStatus.PAID ? date : null,
           },
         });
       }

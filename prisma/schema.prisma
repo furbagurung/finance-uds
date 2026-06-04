@@ -74,6 +74,14 @@ enum PayrollStatus {
   CANCELLED
 }
 
+enum RetainerBillingStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  WAIVED
+}
+
 enum CalendarSystem {
   AD
   BS
@@ -95,12 +103,13 @@ model Branch {
   fiscalYearType FiscalYearType
   isActive       Boolean        @default(true)
 
-  users          User[]
-  employees      Employee[]
-  clients        Client[]
-  projects       Project[]
-  transactions   Transaction[]
-  payrollRecords PayrollRecord[]
+  users            User[]
+  employees        Employee[]
+  clients          Client[]
+  projects         Project[]
+  transactions     Transaction[]
+  payrollRecords   PayrollRecord[]
+  retainerBillings RetainerBilling[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -220,8 +229,9 @@ model Client {
   industry     String?
   notes        String? @db.Text
 
-  projects     Project[]
-  transactions Transaction[]
+  projects         Project[]
+  transactions     Transaction[]
+  retainerBillings RetainerBilling[]
 
   branchId String?
   branch   Branch? @relation(fields: [branchId], references: [id])
@@ -249,7 +259,8 @@ model Project {
   billingEndDate        DateTime?
   nextBillingDate       DateTime?
 
-  transactions Transaction[]
+  transactions     Transaction[]
+  retainerBillings RetainerBilling[]
 
   branchId String?
   branch   Branch? @relation(fields: [branchId], references: [id])
@@ -296,8 +307,46 @@ model Transaction {
 
   payrollRecord PayrollRecord?
 
+  retainerBillingId String?
+  retainerBilling   RetainerBilling? @relation(fields: [retainerBillingId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model RetainerBilling {
+  id String @id @default(cuid())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
+
+  month      Int
+  year       Int
+  fiscalYear String?
+
+  expectedAmount Decimal @db.Decimal(12, 2)
+  receivedAmount Decimal @default(0) @db.Decimal(12, 2)
+  pendingAmount  Decimal @default(0) @db.Decimal(12, 2)
+
+  currency String?
+  dueDate  DateTime?
+  paidDate DateTime?
+
+  status RetainerBillingStatus @default(PENDING)
+  notes  String?               @db.Text
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, month, year])
 }
 
 model TransactionAttachment {

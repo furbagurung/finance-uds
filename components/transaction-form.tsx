@@ -62,9 +62,27 @@ type Client = {
 type Project = {
   id: string;
   name: string;
+  projectType?: string | null;
   clientId?: string | null;
   client?: Client | null;
   branchId?: string | null;
+  branch?: BranchSummary | null;
+};
+
+type RetainerBilling = {
+  id: string;
+  month: number;
+  year: number;
+  status: string;
+  expectedAmount: string | number;
+  receivedAmount: string | number;
+  pendingAmount: string | number;
+  currency?: string | null;
+  projectId: string;
+  clientId?: string | null;
+  branchId?: string | null;
+  project?: Project | null;
+  client?: Client | null;
   branch?: BranchSummary | null;
 };
 
@@ -109,6 +127,8 @@ const months = [
   { value: "11", label: "November" },
   { value: "12", label: "December" },
 ];
+
+const monthLabels = new Map(months.map((month) => [month.value, month.label]));
 
 const transactionActionLabels: Record<TransactionType, string> = {
   INCOME: "Save Income",
@@ -550,6 +570,41 @@ function ProjectSelectField({
     </>
   );
 }
+
+function RetainerBillingSelectField({
+  retainerBillings,
+  value,
+  onValueChange,
+}: {
+  retainerBillings: RetainerBilling[];
+  value: string;
+  onValueChange: (value: string) => void;
+}) {
+  const items = retainerBillings.map((billing) => {
+    const monthLabel =
+      monthLabels.get(String(billing.month)) || String(billing.month);
+    const projectName = billing.project?.name || "Retainer billing";
+    const pendingAmount = Number(billing.pendingAmount || 0).toLocaleString(
+      "en-IN",
+    );
+
+    return {
+      id: billing.id,
+      name: `${projectName} - ${monthLabel} ${billing.year} - Pending ${billing.currency || ""} ${pendingAmount}`,
+    };
+  });
+
+  return (
+    <SearchableTextDropdown
+      items={items}
+      value={value}
+      onValueChange={onValueChange}
+      placeholder="Select retainer billing"
+      searchPlaceholder="Search billing..."
+      emptyMessage="No matching retainer billings found."
+    />
+  );
+}
 function CategorySelectField({
   categories,
   value,
@@ -661,6 +716,9 @@ export function TransactionForm({
   const [categories, setCategories] = useState<Category[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [retainerBillings, setRetainerBillings] = useState<RetainerBilling[]>(
+    [],
+  );
   const [employees, setEmployees] = useState<Employee[]>([]);
 
   const initialType: TransactionType =
@@ -677,6 +735,7 @@ export function TransactionForm({
   const [categoryId, setCategoryId] = useState("");
   const [clientId, setClientId] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [retainerBillingId, setRetainerBillingId] = useState("");
   const [branchId, setBranchId] = useState("");
   const [branchIdTouched, setBranchIdTouched] = useState(false);
   const [paidBy, setPaidBy] = useState("");
@@ -714,6 +773,24 @@ export function TransactionForm({
     return projects.filter((project) => project.clientId === clientId);
   }, [projects, clientId]);
 
+  const filteredRetainerBillings = useMemo(() => {
+    return retainerBillings.filter((billing) => {
+      if (billing.status === "PAID" || billing.status === "WAIVED") {
+        return false;
+      }
+
+      if (projectId && billing.projectId !== projectId) {
+        return false;
+      }
+
+      if (clientId && billing.clientId !== clientId) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [clientId, projectId, retainerBillings]);
+
   const salaryNetPay = useMemo(() => {
     const basic = Number(salaryBasicSalary || 0);
     const bonus = Number(salaryBonus || 0);
@@ -745,17 +822,20 @@ export function TransactionForm({
         clientsResponse,
         projectsResponse,
         employeesResponse,
+        retainerBillingsResponse,
       ] = await Promise.all([
         fetch("/api/categories"),
         fetch("/api/clients"),
         fetch("/api/projects"),
         fetch("/api/employees"),
+        fetch("/api/retainer-billings"),
       ]);
 
       const categoriesData = await categoriesResponse.json();
       const clientsData = await clientsResponse.json();
       const projectsData = await projectsResponse.json();
       const employeesData = await employeesResponse.json();
+      const retainerBillingsData = await retainerBillingsResponse.json();
 
       if (categoriesResponse.ok) {
         setCategories(categoriesData.categories || []);
@@ -770,6 +850,9 @@ export function TransactionForm({
       }
       if (employeesResponse.ok) {
         setEmployees(employeesData.employees || []);
+      }
+      if (retainerBillingsResponse.ok) {
+        setRetainerBillings(retainerBillingsData.retainerBillings || []);
       }
     }
 
@@ -787,6 +870,10 @@ export function TransactionForm({
       setIsReimbursed(false);
       setIsSalaryExpense(false);
       setExpenseScope("COMPANY");
+    }
+
+    if (nextType !== "INCOME") {
+      setRetainerBillingId("");
     }
   }
 
@@ -831,11 +918,13 @@ export function TransactionForm({
   function handleClientChange(value: string) {
     setClientId(value);
     setProjectId("");
+    setRetainerBillingId("");
     inferBranchFromProjectOrClient("", value);
   }
 
   function handleProjectChange(value: string) {
     setProjectId(value);
+    setRetainerBillingId("");
     inferBranchFromProjectOrClient(value, clientId);
   }
 
@@ -910,6 +999,8 @@ export function TransactionForm({
           categoryId: categoryId || null,
           clientId: clientId || null,
           projectId: projectId || null,
+          retainerBillingId:
+            type === "INCOME" && retainerBillingId ? retainerBillingId : null,
           branchId: branchId || null,
           branchIdTouched,
           paidBy: null,
@@ -1084,6 +1175,20 @@ export function TransactionForm({
                   }}
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-slate-600">
+                Retainer Billing
+                <span className="ml-1 font-normal text-slate-400">
+                  Optional
+                </span>
+              </Label>
+              <RetainerBillingSelectField
+                retainerBillings={filteredRetainerBillings}
+                value={retainerBillingId}
+                onValueChange={setRetainerBillingId}
+              />
             </div>
           </div>
         ) : null}

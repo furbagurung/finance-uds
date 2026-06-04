@@ -11,6 +11,7 @@ type CreateActivityLogInput = {
   | "USER"
   | "EMPLOYEE"
   | "PAYROLL"
+  | "RETAINER_BILLING"
   | "BRANCH"
   | "ATTACHMENT"
   | "AUTH";

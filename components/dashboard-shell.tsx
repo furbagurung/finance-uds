@@ -88,6 +88,11 @@ const sidebarSections: SidebarSection[] = [
         icon: Wallet,
       },
       {
+        title: "Retainers",
+        href: "/retainers",
+        icon: ReceiptText,
+      },
+      {
         title: "Categories",
         href: "/categories",
         icon: Tags,
