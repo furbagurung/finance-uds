@@ -3,13 +3,34 @@ import {
     ExpenseScope,
     PaymentMethod,
     PayrollStatus,
+    Prisma,
     TransactionType,
 } from "@prisma/client";
 import { createActivityLog } from "@/lib/activity-log";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+const branchSelect = {
+    id: true,
+    name: true,
+    code: true,
+    country: true,
+    currency: true,
+    calendarSystem: true,
+    fiscalYearType: true,
+} satisfies Prisma.BranchSelect;
+
+function parseOptionalString(value: unknown) {
+    if (value === "" || value === null || value === undefined) {
+        return null;
+    }
+
+    const parsedValue = String(value).trim();
+
+    return parsedValue || null;
+}
+
+export async function GET(request: Request) {
     try {
         const currentUser = await getCurrentUser();
 
@@ -27,7 +48,33 @@ export async function GET() {
             );
         }
 
+        const { searchParams } = new URL(request.url);
+        const branchIdParam = parseOptionalString(searchParams.get("branchId"));
+        const branchId =
+            branchIdParam && branchIdParam !== "ALL" ? branchIdParam : null;
+        const statusParam = parseOptionalString(searchParams.get("status"));
+        const status =
+            statusParam &&
+            statusParam !== "ALL" &&
+            Object.values(PayrollStatus).includes(statusParam as PayrollStatus)
+                ? (statusParam as PayrollStatus)
+                : null;
+        const month = searchParams.get("month")
+            ? Number(searchParams.get("month"))
+            : null;
+        const year = searchParams.get("year")
+            ? Number(searchParams.get("year"))
+            : null;
+
+        const where: Prisma.PayrollRecordWhereInput = {
+            ...(branchId ? { branchId } : {}),
+            ...(status ? { status } : {}),
+            ...(month && month >= 1 && month <= 12 ? { month } : {}),
+            ...(year && year >= 2000 ? { year } : {}),
+        };
+
         const payrollRecords = await prisma.payrollRecord.findMany({
+            where,
             orderBy: [
                 { year: "desc" },
                 { month: "desc" },
@@ -41,7 +88,14 @@ export async function GET() {
                         email: true,
                         position: true,
                         department: true,
+                        branchId: true,
+                        branch: {
+                            select: branchSelect,
+                        },
                     },
+                },
+                branch: {
+                    select: branchSelect,
                 },
                 transaction: {
                     select: {
@@ -162,9 +216,22 @@ export async function POST(request: Request) {
             );
         }
 
+        const requestBranchId = parseOptionalString(body.branchId);
+
         const employee = await prisma.employee.findUnique({
             where: {
                 id: employeeId,
+            },
+            select: {
+                id: true,
+                fullName: true,
+                branchId: true,
+                branch: {
+                    select: {
+                        ...branchSelect,
+                        isActive: true,
+                    },
+                },
             },
         });
 
@@ -174,6 +241,20 @@ export async function POST(request: Request) {
                 { status: 404 }
             );
         }
+
+        if (requestBranchId && requestBranchId !== employee.branchId) {
+            return NextResponse.json(
+                { message: "Payroll branch must match the selected employee branch." },
+                { status: 400 }
+            );
+        }
+
+        const payrollBranchId =
+            employee.branchId && employee.branch?.isActive ? employee.branchId : null;
+        const payrollCurrency =
+            employee.branchId && employee.branch?.isActive
+                ? employee.branch.currency
+                : null;
 
         const netPay = basicSalary + bonus - deduction;
 
@@ -203,6 +284,8 @@ export async function POST(request: Request) {
                             `Payroll salary expense for ${employee.fullName} for ${month}/${year}.`,
                         isBillable: false,
                         isReimbursed: false,
+                        branchId: payrollBranchId,
+                        currency: payrollCurrency,
                         createdById: currentUser.id,
                     },
                     select: {
@@ -225,6 +308,8 @@ export async function POST(request: Request) {
                     paymentDate,
                     paymentMethod,
                     status,
+                    branchId: payrollBranchId,
+                    currency: payrollCurrency,
                     notes: notes || null,
                     transactionId,
                 },
@@ -236,7 +321,14 @@ export async function POST(request: Request) {
                             email: true,
                             position: true,
                             department: true,
+                            branchId: true,
+                            branch: {
+                                select: branchSelect,
+                            },
                         },
+                    },
+                    branch: {
+                        select: branchSelect,
                     },
                     transaction: {
                         select: {

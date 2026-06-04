@@ -2,7 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
+import { BranchBadge } from "@/components/branch-badge";
 import { Button } from "@/components/ui/button";
+
+type BranchSummary = {
+  id: string;
+  name: string;
+  code: string;
+  country?: string | null;
+  currency: string;
+  calendarSystem?: string | null;
+  fiscalYearType?: string | null;
+};
 
 type PayrollEmployeeOption = {
   id: string;
@@ -10,6 +21,8 @@ type PayrollEmployeeOption = {
   email: string;
   position: string | null;
   salaryAmount: string | number | null;
+  branchId?: string | null;
+  branch?: BranchSummary | null;
 };
 
 type PayrollFormProps = {
@@ -75,13 +88,17 @@ export function PayrollForm({
     return salary + bonusAmount - deductionAmount;
   }, [basicSalary, bonus, deduction]);
 
+  const selectedEmployee = useMemo(() => {
+    return employees.find((item) => item.id === employeeId) || null;
+  }, [employees, employeeId]);
+
   function handleEmployeeChange(value: string) {
     setEmployeeId(value);
 
-    const selectedEmployee = employees.find((item) => item.id === value);
+    const nextEmployee = employees.find((item) => item.id === value);
 
-    if (selectedEmployee?.salaryAmount) {
-      setBasicSalary(String(selectedEmployee.salaryAmount));
+    if (nextEmployee?.salaryAmount) {
+      setBasicSalary(String(nextEmployee.salaryAmount));
     }
   }
 
@@ -157,6 +174,22 @@ export function PayrollForm({
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="space-y-2 md:col-span-2">
+          <label className="text-sm font-medium text-slate-700">Branch</label>
+          <div className="flex min-h-10 flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            {selectedEmployee?.branch ? (
+              <>
+                <BranchBadge branch={selectedEmployee.branch} showCurrency />
+                <span className="text-xs font-medium text-slate-500">
+                  Currency: {selectedEmployee.branch.currency}
+                </span>
+              </>
+            ) : (
+              <span className="text-slate-500">Branch: Not assigned</span>
+            )}
+          </div>
         </div>
 
         <div className="space-y-2">

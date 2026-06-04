@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/require-admin";
+import { BranchBadge } from "@/components/branch-badge";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,12 +43,22 @@ function formatDate(date: Date | null) {
   }).format(date);
 }
 
-function formatMoney(amount: unknown) {
+const branchSelect = {
+  id: true,
+  name: true,
+  code: true,
+  country: true,
+  currency: true,
+  calendarSystem: true,
+  fiscalYearType: true,
+};
+
+function formatMoney(amount: unknown, currency = "NPR") {
   if (amount === null || amount === undefined) return "-";
 
   return new Intl.NumberFormat("en-NP", {
     style: "currency",
-    currency: "NPR",
+    currency,
     maximumFractionDigits: 0,
   }).format(Number(amount));
 }
@@ -71,7 +82,14 @@ export default async function PayrollDetailPage({
           phone: true,
           position: true,
           department: true,
+          branchId: true,
+          branch: {
+            select: branchSelect,
+          },
         },
+      },
+      branch: {
+        select: branchSelect,
       },
       transaction: {
         select: {
@@ -88,6 +106,9 @@ export default async function PayrollDetailPage({
   if (!payrollRecord) {
     notFound();
   }
+
+  const displayCurrency =
+    payrollRecord.currency || payrollRecord.branch?.currency || "NPR";
 
   return (
     <DashboardShell user={user}>
@@ -133,16 +154,29 @@ export default async function PayrollDetailPage({
               />
               <DetailItem
                 label="Basic Salary"
-                value={formatMoney(payrollRecord.basicSalary)}
+                value={formatMoney(payrollRecord.basicSalary, displayCurrency)}
               />
-              <DetailItem label="Bonus" value={formatMoney(payrollRecord.bonus)} />
+              <DetailItem
+                label="Bonus"
+                value={formatMoney(payrollRecord.bonus, displayCurrency)}
+              />
               <DetailItem
                 label="Deduction"
-                value={formatMoney(payrollRecord.deduction)}
+                value={formatMoney(payrollRecord.deduction, displayCurrency)}
               />
               <DetailItem
                 label="Net Pay"
-                value={formatMoney(payrollRecord.netPay)}
+                value={formatMoney(payrollRecord.netPay, displayCurrency)}
+              />
+              <DetailItem
+                label="Branch"
+                value={
+                  payrollRecord.branch ? (
+                    <BranchBadge branch={payrollRecord.branch} showCurrency />
+                  ) : (
+                    "Not assigned"
+                  )
+                }
               />
               <DetailItem
                 label="Payment Method"
@@ -179,6 +213,19 @@ export default async function PayrollDetailPage({
                   label="Department"
                   value={payrollRecord.employee.department || "-"}
                 />
+                <DetailItem
+                  label="Branch"
+                  value={
+                    payrollRecord.employee.branch ? (
+                      <BranchBadge
+                        branch={payrollRecord.employee.branch}
+                        showCurrency
+                      />
+                    ) : (
+                      "Not assigned"
+                    )
+                  }
+                />
 
                 <Button asChild variant="outline" className="w-full">
                   <Link href={`/employees/${payrollRecord.employee.id}`}>
@@ -202,7 +249,10 @@ export default async function PayrollDetailPage({
                     />
                     <DetailItem
                       label="Amount"
-                      value={formatMoney(payrollRecord.transaction.amount)}
+                      value={formatMoney(
+                        payrollRecord.transaction.amount,
+                        displayCurrency,
+                      )}
                     />
                   </>
                 ) : (
@@ -219,7 +269,13 @@ export default async function PayrollDetailPage({
   );
 }
 
-function DetailItem({ label, value }: { label: string; value: string }) {
+function DetailItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
       <div className="text-xs font-medium uppercase tracking-wide text-slate-400">

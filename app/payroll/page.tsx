@@ -1,6 +1,8 @@
 
 import Link from "next/link";
 import { requireAdmin } from "@/lib/require-admin";
+import { BranchBadge } from "@/components/branch-badge";
+import { BranchFilter } from "@/components/branch-filter";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,18 +48,38 @@ function formatDate(date: Date | null) {
     }).format(date);
 }
 
-function formatMoney(amount: unknown) {
+const branchSelect = {
+    id: true,
+    name: true,
+    code: true,
+    country: true,
+    currency: true,
+    calendarSystem: true,
+    fiscalYearType: true,
+};
+
+type PayrollPageProps = {
+    searchParams: Promise<{
+        branchId?: string;
+    }>;
+};
+
+function formatMoney(amount: unknown, currency = "NPR") {
     if (amount === null || amount === undefined) return "-";
 
     return new Intl.NumberFormat("en-NP", {
         style: "currency",
-        currency: "NPR",
+        currency,
         maximumFractionDigits: 0,
     }).format(Number(amount));
 }
 
-export default async function PayrollPage() {
+export default async function PayrollPage({ searchParams }: PayrollPageProps) {
+    const params = await searchParams;
     const user = await requireAdmin();
+    const selectedBranchId =
+        params.branchId && params.branchId !== "ALL" ? params.branchId : "";
+
     const employees = await prisma.employee.findMany({
         where: {
             status: "ACTIVE",
@@ -71,6 +93,10 @@ export default async function PayrollPage() {
             email: true,
             position: true,
             salaryAmount: true,
+            branchId: true,
+            branch: {
+                select: branchSelect,
+            },
         },
     });
     const employeeOptions = employees.map((employee) => ({
@@ -78,6 +104,9 @@ export default async function PayrollPage() {
         salaryAmount: employee.salaryAmount ? String(employee.salaryAmount) : null,
     }));
     const payrollRecords = await prisma.payrollRecord.findMany({
+        where: {
+            ...(selectedBranchId ? { branchId: selectedBranchId } : {}),
+        },
         orderBy: [
             {
                 year: "desc",
@@ -97,7 +126,14 @@ export default async function PayrollPage() {
                     email: true,
                     position: true,
                     department: true,
+                    branchId: true,
+                    branch: {
+                        select: branchSelect,
+                    },
                 },
+            },
+            branch: {
+                select: branchSelect,
             },
             transaction: {
                 select: {
@@ -130,10 +166,15 @@ export default async function PayrollPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Payroll Records</CardTitle>
-                        <CardDescription>
-                            Track monthly employee salary, payment status, and linked expenses.
-                        </CardDescription>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <CardTitle>Payroll Records</CardTitle>
+                                <CardDescription>
+                                    Track monthly employee salary, payment status, and linked expenses.
+                                </CardDescription>
+                            </div>
+                            <BranchFilter basePath="/payroll" />
+                        </div>
                     </CardHeader>
 
                     <CardContent>
@@ -141,6 +182,7 @@ export default async function PayrollPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Employee</TableHead>
+                                    <TableHead>Branch</TableHead>
                                     <TableHead>Period</TableHead>
                                     <TableHead>Basic Salary</TableHead>
                                     <TableHead>Bonus</TableHead>
@@ -156,7 +198,7 @@ export default async function PayrollPage() {
                                 {payrollRecords.length === 0 ? (
                                     <TableRow>
                                         <TableCell
-                                            colSpan={9}
+                                            colSpan={10}
                                             className="py-10 text-center text-sm text-slate-500"
                                         >
                                             No payroll records found.
@@ -175,15 +217,23 @@ export default async function PayrollPage() {
                                             </TableCell>
 
                                             <TableCell>
+                                                {record.branch ? (
+                                                    <BranchBadge branch={record.branch} />
+                                                ) : (
+                                                    <span className="text-slate-400">-</span>
+                                                )}
+                                            </TableCell>
+
+                                            <TableCell>
                                                 {monthNames[record.month]} {record.year}
                                             </TableCell>
 
-                                            <TableCell>{formatMoney(record.basicSalary)}</TableCell>
-                                            <TableCell>{formatMoney(record.bonus)}</TableCell>
-                                            <TableCell>{formatMoney(record.deduction)}</TableCell>
+                                            <TableCell>{formatMoney(record.basicSalary, record.currency || record.branch?.currency || "NPR")}</TableCell>
+                                            <TableCell>{formatMoney(record.bonus, record.currency || record.branch?.currency || "NPR")}</TableCell>
+                                            <TableCell>{formatMoney(record.deduction, record.currency || record.branch?.currency || "NPR")}</TableCell>
 
                                             <TableCell className="font-semibold text-slate-950">
-                                                {formatMoney(record.netPay)}
+                                                {formatMoney(record.netPay, record.currency || record.branch?.currency || "NPR")}
                                             </TableCell>
 
                                             <TableCell>

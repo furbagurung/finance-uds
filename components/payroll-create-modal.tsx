@@ -5,12 +5,24 @@ import { Plus } from "lucide-react";
 import { PayrollForm } from "@/components/payroll-form";
 import { Button } from "@/components/ui/button";
 
+type BranchSummary = {
+  id: string;
+  name: string;
+  code: string;
+  country?: string | null;
+  currency: string;
+  calendarSystem?: string | null;
+  fiscalYearType?: string | null;
+};
+
 type PayrollEmployeeOption = {
   id: string;
   fullName: string;
   email: string;
   position: string | null;
   salaryAmount: string | number | null;
+  branchId?: string | null;
+  branch?: BranchSummary | null;
 };
 
 type PayrollCreateModalProps = {
