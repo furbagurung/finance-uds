@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/require-admin";
 import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { BranchBadge } from "@/components/branch-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmployeeCreateModal } from "@/components/employee-create-modal";
@@ -20,14 +21,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
-
-function formatDate(date: Date | null) {
-  if (!date) return "-";
-
-  return new Intl.DateTimeFormat("en-NP", {
-    dateStyle: "medium",
-  }).format(date);
-}
 
 function formatMoney(amount: unknown) {
   if (amount === null || amount === undefined) return "-";
@@ -55,10 +48,22 @@ export default async function EmployeesPage() {
       department: true,
       joiningDate: true,
       salaryAmount: true,
-      salaryType: true,
-      status: true,
-      createdAt: true,
-    },
+        salaryType: true,
+        status: true,
+        branchId: true,
+        branch: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            country: true,
+            currency: true,
+            calendarSystem: true,
+            fiscalYearType: true,
+          },
+        },
+        createdAt: true,
+      },
   });
 
   return (
@@ -91,11 +96,10 @@ export default async function EmployeesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Employee</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Department</TableHead>
+                  <TableHead>Branch</TableHead>
+                  <TableHead>Role/Designation</TableHead>
                   <TableHead>Salary</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Joined</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -104,7 +108,7 @@ export default async function EmployeesPage() {
                 {employees.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={6}
                       className="py-10 text-center text-sm text-slate-500"
                     >
                       No employees found.
@@ -118,20 +122,26 @@ export default async function EmployeesPage() {
                           {employee.fullName}
                         </div>
                         <div className="text-xs text-slate-500">
-                          {employee.position || "No position added"}
+                          {employee.email}
                         </div>
                       </TableCell>
 
                       <TableCell>
-                        <div className="text-sm text-slate-700">
-                          {employee.email}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          {employee.phone || "No phone"}
-                        </div>
+                        {employee.branch ? (
+                          <BranchBadge branch={employee.branch} />
+                        ) : (
+                          "-"
+                        )}
                       </TableCell>
 
-                      <TableCell>{employee.department || "-"}</TableCell>
+                      <TableCell>
+                        <div className="font-medium text-slate-800">
+                          {employee.position || "-"}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {employee.department || "No department"}
+                        </div>
+                      </TableCell>
 
                       <TableCell>
                         <div className="font-medium">
@@ -153,8 +163,6 @@ export default async function EmployeesPage() {
                           {employee.status}
                         </Badge>
                       </TableCell>
-
-                      <TableCell>{formatDate(employee.joiningDate)}</TableCell>
 
                       <TableCell>
                         <Button asChild variant="outline" size="sm">

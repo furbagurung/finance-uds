@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 export type BranchOption = {
   id: string;
@@ -28,6 +29,9 @@ type BranchSelectFieldProps = {
   disabled?: boolean;
   showCurrency?: boolean;
   branches?: BranchOption[];
+  allowUnassigned?: boolean;
+  unassignedLabel?: string;
+  triggerClassName?: string;
 };
 
 export function BranchSelectField({
@@ -37,6 +41,9 @@ export function BranchSelectField({
   disabled = false,
   showCurrency = false,
   branches,
+  allowUnassigned = false,
+  unassignedLabel = "Not assigned",
+  triggerClassName,
 }: BranchSelectFieldProps) {
   const [fetchedBranches, setFetchedBranches] = useState<BranchOption[]>([]);
   const [isLoading, setIsLoading] = useState(branches === undefined);
@@ -89,13 +96,24 @@ export function BranchSelectField({
   return (
     <Select
       value={value || undefined}
-      onValueChange={onValueChange}
+      onValueChange={(nextValue) =>
+        onValueChange(nextValue === "__unassigned" ? "" : nextValue)
+      }
       disabled={disabled}
     >
-      <SelectTrigger className="h-9 min-w-[160px] rounded-xl border-slate-200 bg-white text-xs shadow-none focus:ring-2 focus:ring-slate-200">
+      <SelectTrigger
+        className={cn(
+          "h-9 min-w-[160px] rounded-xl border-slate-200 bg-white text-xs shadow-none focus:ring-2 focus:ring-slate-200",
+          triggerClassName
+        )}
+      >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
+        {allowUnassigned ? (
+          <SelectItem value="__unassigned">{unassignedLabel}</SelectItem>
+        ) : null}
+
         {isLoading ? (
           <SelectItem value="__loading" disabled>
             Loading branches...

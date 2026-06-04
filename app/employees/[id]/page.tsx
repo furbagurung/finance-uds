@@ -1,7 +1,9 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/require-admin";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { BranchBadge } from "@/components/branch-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +49,17 @@ export default async function EmployeeDetailPage({
       id,
     },
     include: {
+      branch: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          country: true,
+          currency: true,
+          calendarSystem: true,
+          fiscalYearType: true,
+        },
+      },
       payrollRecords: {
         orderBy: [
           {
@@ -110,6 +123,16 @@ export default async function EmployeeDetailPage({
                 value={employee.department || "-"}
               />
               <DetailItem
+                label="Branch"
+                value={
+                  employee.branch ? (
+                    <BranchBadge branch={employee.branch} showCurrency />
+                  ) : (
+                    "Not assigned"
+                  )
+                }
+              />
+              <DetailItem
                 label="Joining Date"
                 value={formatDate(employee.joiningDate)}
               />
@@ -154,7 +177,7 @@ export default async function EmployeeDetailPage({
   );
 }
 
-function DetailItem({ label, value }: { label: string; value: string }) {
+function DetailItem({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
       <div className="text-xs font-medium uppercase tracking-wide text-slate-400">

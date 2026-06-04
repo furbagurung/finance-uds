@@ -4,6 +4,16 @@ import { createActivityLog } from "@/lib/activity-log";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 
+const employeeBranchSelect = {
+  id: true,
+  name: true,
+  code: true,
+  country: true,
+  currency: true,
+  calendarSystem: true,
+  fiscalYearType: true,
+};
+
 export async function GET() {
   try {
     const currentUser = await getCurrentUser();
@@ -37,6 +47,10 @@ export async function GET() {
         salaryAmount: true,
         salaryType: true,
         status: true,
+        branchId: true,
+        branch: {
+          select: employeeBranchSelect,
+        },
         createdAt: true,
       },
     });
@@ -78,6 +92,13 @@ export async function POST(request: Request) {
     const position = String(body.position || "").trim();
     const department = String(body.department || "").trim();
     const notes = String(body.notes || "").trim();
+    const branchIdValue =
+      body.branchId === "" ||
+      body.branchId === null ||
+      body.branchId === undefined
+        ? null
+        : String(body.branchId).trim();
+    const branchId = branchIdValue || null;
 
     const joiningDate = body.joiningDate
       ? new Date(String(body.joiningDate))
@@ -144,6 +165,25 @@ export async function POST(request: Request) {
       );
     }
 
+    if (branchId) {
+      const branch = await prisma.branch.findFirst({
+        where: {
+          id: branchId,
+          isActive: true,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!branch) {
+        return NextResponse.json(
+          { message: "Selected branch was not found or is inactive." },
+          { status: 400 }
+        );
+      }
+    }
+
     const employee = await prisma.employee.create({
       data: {
         fullName,
@@ -155,6 +195,7 @@ export async function POST(request: Request) {
         salaryAmount,
         salaryType,
         status,
+        branchId,
         notes: notes || null,
       },
       select: {
@@ -168,6 +209,10 @@ export async function POST(request: Request) {
         salaryAmount: true,
         salaryType: true,
         status: true,
+        branchId: true,
+        branch: {
+          select: employeeBranchSelect,
+        },
         createdAt: true,
       },
     });
@@ -184,6 +229,8 @@ export async function POST(request: Request) {
         department: employee.department,
         salaryType: employee.salaryType,
         status: employee.status,
+        branchId: employee.branchId,
+        branchName: employee.branch?.name,
       },
     });
 

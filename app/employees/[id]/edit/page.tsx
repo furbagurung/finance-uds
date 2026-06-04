@@ -29,6 +29,19 @@ export default async function EmployeeEditPage({
         where: {
             id,
         },
+        include: {
+            branch: {
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    country: true,
+                    currency: true,
+                    calendarSystem: true,
+                    fiscalYearType: true,
+                },
+            },
+        },
     });
 
     if (!employee) {

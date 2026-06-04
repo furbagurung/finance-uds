@@ -3,7 +3,18 @@
 import { useRouter } from "next/navigation";
 
 import { FormEvent, useState } from "react";
+import { BranchSelectField } from "@/components/branch-select-field";
 import { Button } from "@/components/ui/button";
+type EmployeeBranchData = {
+  id: string;
+  name: string;
+  code: string;
+  country: string;
+  currency: string;
+  calendarSystem: string;
+  fiscalYearType: string;
+};
+
 type EmployeeFormData = {
   id: string;
   fullName: string;
@@ -16,6 +27,8 @@ type EmployeeFormData = {
   salaryType: string;
   status: string;
   notes: string | null;
+  branchId?: string | null;
+  branch?: EmployeeBranchData | null;
 };
 type EmployeeFormProps = {
   employee?: EmployeeFormData;
@@ -50,6 +63,7 @@ export function EmployeeForm({
     const [salaryType, setSalaryType] = useState(employee?.salaryType || "MONTHLY");
     const [status, setStatus] = useState(employee?.status || "ACTIVE");
     const [notes, setNotes] = useState(employee?.notes || "");
+    const [branchId, setBranchId] = useState(employee?.branchId || "");
 
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -79,6 +93,7 @@ export function EmployeeForm({
                         salaryType,
                         status,
                         notes,
+                        branchId,
                     }),
                 });
 
@@ -215,6 +230,21 @@ export function EmployeeForm({
                             </option>
                         ))}
                     </select>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">
+                        Branch
+                    </label>
+                    <BranchSelectField
+                        value={branchId}
+                        onValueChange={setBranchId}
+                        placeholder="Select branch"
+                        showCurrency
+                        allowUnassigned
+                        unassignedLabel="Not assigned"
+                        triggerClassName="h-10 w-full"
+                    />
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
