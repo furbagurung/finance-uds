@@ -279,15 +279,15 @@ export default async function TransactionDetailPage({
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <CardTitle className="text-base">
-                        Retainer Billing
+                        Monthly Payment Tracker
                       </CardTitle>
                       <CardDescription>
-                        Linked monthly retainer billing record.
+                        Linked monthly payment tracking record.
                       </CardDescription>
                     </div>
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/retainers/${transaction.retainerBilling.id}`}>
-                        View Retainer
+                        View Monthly Payment
                       </Link>
                     </Button>
                   </div>

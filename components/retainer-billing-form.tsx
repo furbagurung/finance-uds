@@ -167,7 +167,7 @@ export function RetainerBillingForm({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || "Failed to create retainer billing.");
+        setError(data.message || "Failed to create monthly payment.");
         return;
       }
 
@@ -180,7 +180,7 @@ export function RetainerBillingForm({
       router.push("/retainers");
       router.refresh();
     } catch {
-      setError("Something went wrong while creating retainer billing.");
+      setError("Something went wrong while creating monthly payment.");
     } finally {
       setLoading(false);
     }
@@ -189,9 +189,9 @@ export function RetainerBillingForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create Retainer Billing</CardTitle>
+        <CardTitle>Create Monthly Payment</CardTitle>
         <CardDescription>
-          Add a monthly billing record for a retainer project.
+          Add a monthly payment tracker for a project.
         </CardDescription>
       </CardHeader>
 
@@ -201,12 +201,12 @@ export function RetainerBillingForm({
             <Label>Project</Label>
             <Select value={projectId} onValueChange={handleProjectChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Select monthly retainer project" />
+                <SelectValue placeholder="Select monthly project" />
               </SelectTrigger>
               <SelectContent>
                 {monthlyRetainerProjects.length === 0 ? (
                   <SelectItem value="__empty" disabled>
-                    No monthly retainer projects found
+                    No monthly projects found
                   </SelectItem>
                 ) : null}
                 {monthlyRetainerProjects.map((project) => (
@@ -285,7 +285,7 @@ export function RetainerBillingForm({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Expected Amount</Label>
+              <Label>Expected</Label>
               <Input
                 type="number"
                 min="0"
@@ -296,7 +296,7 @@ export function RetainerBillingForm({
             </div>
 
             <div className="space-y-2">
-              <Label>Received Amount</Label>
+              <Label>Received</Label>
               <Input
                 type="number"
                 min="0"
@@ -318,7 +318,7 @@ export function RetainerBillingForm({
             </div>
 
             <div className="space-y-2">
-              <Label>Pending Amount</Label>
+              <Label>Pending</Label>
               <div className="flex h-10 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-900">
                 {formatMoney(pendingAmount, selectedCurrency)}
               </div>
@@ -357,7 +357,7 @@ export function RetainerBillingForm({
             </Button>
 
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Billing"}
+              {loading ? "Saving..." : "Save Monthly Payment"}
             </Button>
           </div>
         </form>

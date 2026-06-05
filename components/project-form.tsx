@@ -422,7 +422,7 @@ export function ProjectForm({
             <div className="grid gap-4 md:grid-cols-2">
               {projectType === "MONTHLY_RETAINER" ? (
                 <div className="space-y-2">
-                  <Label>Monthly Retainer Amount</Label>
+                  <Label>Monthly Amount</Label>
                   <Input
                     type="number"
                     value={monthlyRetainerAmount}

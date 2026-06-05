@@ -27,24 +27,15 @@ function formatCurrency(amount: unknown) {
   return `Rs. ${Number(amount).toLocaleString("en-IN")}`;
 }
 
-function formatBillingMoney(amount: unknown, currency?: string | null) {
-  if (!amount) return "-";
-
-  const amountNumber = Number(amount);
-  const currencyCode = currency || "NPR";
-
-  try {
-    return new Intl.NumberFormat("en-NP", {
-      style: "currency",
-      currency: currencyCode,
-      maximumFractionDigits: 2,
-    }).format(amountNumber);
-  } catch {
-    return `${currencyCode} ${amountNumber.toLocaleString("en-IN")}`;
+function formatProjectType(value: string) {
+  if (value === "MONTHLY_RETAINER") {
+    return "Monthly";
   }
-}
 
-function formatEnumLabel(value: string) {
+  if (value === "ONE_TIME") {
+    return "One-time";
+  }
+
   return value.replaceAll("_", " ");
 }
 
@@ -109,8 +100,7 @@ export default async function ProjectsPage() {
           <div>
             <h1 className="text-3xl font-bold text-slate-950">Projects</h1>
             <p className="mt-1 text-sm text-slate-500">
-              Track client projects, budgets, timelines, and project-wise
-              transactions.
+              Projects connect clients, services, and payments.
             </p>
           </div>
 
@@ -170,7 +160,7 @@ export default async function ProjectsPage() {
                           </Link>
                           <div>
                             <Badge variant="outline" className="text-[10px]">
-                              {formatEnumLabel(project.projectType)}
+                              {formatProjectType(project.projectType)}
                             </Badge>
                           </div>
                         </div>
@@ -187,17 +177,7 @@ export default async function ProjectsPage() {
                       </TableCell>
 
                       <TableCell>
-                        <div>{formatCurrency(project.budget)}</div>
-                        {project.projectType === "MONTHLY_RETAINER" &&
-                        project.monthlyRetainerAmount ? (
-                          <div className="mt-1 text-xs text-slate-500">
-                            {formatBillingMoney(
-                              project.monthlyRetainerAmount,
-                              project.currency || project.branch?.currency,
-                            )}
-                            /mo
-                          </div>
-                        ) : null}
+                        {formatCurrency(project.budget)}
                       </TableCell>
 
                       <TableCell>

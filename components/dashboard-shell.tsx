@@ -77,36 +77,11 @@ const sidebarSections: SidebarSection[] = [
         href: "/dashboard",
         icon: LayoutDashboard,
       },
-    ],
-  },
-  {
-    label: "FINANCE",
-    items: [
       {
         title: "Transactions",
         href: "/transactions",
         icon: Wallet,
       },
-      {
-        title: "Retainers",
-        href: "/retainers",
-        icon: ReceiptText,
-      },
-      {
-        title: "Categories",
-        href: "/categories",
-        icon: Tags,
-      },
-      {
-        title: "Reports",
-        href: "/reports",
-        icon: BarChart3,
-      },
-    ],
-  },
-  {
-    label: "CRM",
-    items: [
       {
         title: "Clients",
         href: "/clients",
@@ -120,14 +95,8 @@ const sidebarSections: SidebarSection[] = [
     ],
   },
   {
-    label: "TEAM",
+    label: "TEAM & PAYROLL",
     items: [
-      {
-        title: "Users",
-        href: "/users",
-        icon: Users,
-        adminOnly: true,
-      },
       {
         title: "Employees",
         href: "/employees",
@@ -143,8 +112,34 @@ const sidebarSections: SidebarSection[] = [
     ],
   },
   {
-    label: "SYSTEM",
+    label: "REPORTS",
     items: [
+      {
+        title: "Reports",
+        href: "/reports",
+        icon: BarChart3,
+      },
+    ],
+  },
+  {
+    label: "ADVANCED / SETUP",
+    items: [
+      {
+        title: "Monthly Payments",
+        href: "/retainers",
+        icon: ReceiptText,
+      },
+      {
+        title: "Categories",
+        href: "/categories",
+        icon: Tags,
+      },
+      {
+        title: "Users",
+        href: "/users",
+        icon: Users,
+        adminOnly: true,
+      },
       {
         title: "Backup",
         href: "/backup",

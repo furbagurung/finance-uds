@@ -152,12 +152,12 @@ export default async function RetainerDetailPage({
               {retainerBilling.year}
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Retainer billing details and linked income transactions.
+              Monthly payment details and linked income transactions.
             </p>
           </div>
 
           <Button asChild variant="outline">
-            <Link href="/retainers">Back to Retainers</Link>
+            <Link href="/retainers">Back to Monthly Payments</Link>
           </Button>
         </div>
 
@@ -165,7 +165,7 @@ export default async function RetainerDetailPage({
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium text-slate-500">
-                Expected Amount
+                Expected
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -178,7 +178,7 @@ export default async function RetainerDetailPage({
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium text-slate-500">
-                Received Amount
+                Received
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -191,7 +191,7 @@ export default async function RetainerDetailPage({
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium text-slate-500">
-                Pending Amount
+                Pending
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -204,9 +204,9 @@ export default async function RetainerDetailPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Billing Information</CardTitle>
+            <CardTitle>Monthly Payment Information</CardTitle>
             <CardDescription>
-              Project, client, branch, dates, and billing status.
+              Project, client, branch, dates, and payment status.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
@@ -322,7 +322,7 @@ export default async function RetainerDetailPage({
           <CardHeader>
             <CardTitle>Linked Transactions</CardTitle>
             <CardDescription>
-              Income transactions linked to this retainer billing.
+              Income transactions linked to this monthly payment.
             </CardDescription>
           </CardHeader>
           <CardContent>

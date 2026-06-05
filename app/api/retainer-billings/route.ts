@@ -153,7 +153,7 @@ export async function GET(request: Request) {
     console.error("Retainer billings GET error:", error);
 
     return NextResponse.json(
-      { message: "Failed to fetch retainer billings." },
+      { message: "Failed to fetch monthly payments." },
       { status: 500 },
     );
   }
@@ -234,7 +234,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           message:
-            "Retainer billings can only be created for monthly retainer projects.",
+            "Monthly payments can only be created for monthly projects.",
         },
         { status: 400 },
       );
@@ -247,7 +247,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           message:
-            "Expected amount is required. Add a monthly retainer amount to the project or enter one manually.",
+            "Expected amount is required. Add a monthly amount to the project or enter one manually.",
         },
         { status: 400 },
       );
@@ -293,7 +293,7 @@ export async function POST(request: Request) {
       entity: "RETAINER_BILLING",
       entityId: retainerBilling.id,
       userId: user.id,
-      message: `Created retainer billing: ${project.name} ${month}/${year}`,
+      message: `Created monthly payment: ${project.name} ${month}/${year}`,
       metadata: {
         projectId: project.id,
         clientId: project.clientId,
@@ -309,7 +309,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        message: "Retainer billing created successfully.",
+        message: "Monthly payment created successfully.",
         retainerBilling,
       },
       { status: 201 },
@@ -324,14 +324,14 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           message:
-            "A retainer billing already exists for this project, month, and year.",
+            "A monthly payment already exists for this project, month, and year.",
         },
         { status: 400 },
       );
     }
 
     return NextResponse.json(
-      { message: "Failed to create retainer billing." },
+      { message: "Failed to create monthly payment." },
       { status: 500 },
     );
   }

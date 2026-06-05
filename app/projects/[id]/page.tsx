@@ -54,6 +54,18 @@ function formatEnumLabel(value: string) {
   return value.replaceAll("_", " ");
 }
 
+function formatProjectType(value: string) {
+  if (value === "MONTHLY_RETAINER") {
+    return "Monthly";
+  }
+
+  if (value === "ONE_TIME") {
+    return "One-time";
+  }
+
+  return formatEnumLabel(value);
+}
+
 function formatDate(date: Date | null) {
   if (!date) return "-";
 
@@ -294,7 +306,7 @@ export default async function ProjectDetailPage({
           <CardHeader>
             <CardTitle>Billing</CardTitle>
             <CardDescription>
-              Project billing setup for retainers and one-time work.
+              Project billing setup for monthly and one-time work.
             </CardDescription>
           </CardHeader>
 
@@ -305,7 +317,7 @@ export default async function ProjectDetailPage({
               </p>
               <div className="mt-1">
                 <Badge variant="outline">
-                  {formatEnumLabel(project.projectType)}
+                  {formatProjectType(project.projectType)}
                 </Badge>
               </div>
             </div>
@@ -323,7 +335,7 @@ export default async function ProjectDetailPage({
 
             <div>
               <p className="text-xs font-medium uppercase text-slate-500">
-                Monthly Retainer Amount
+                Monthly Amount
               </p>
               <p className="mt-1 font-medium">
                 {formatMoney(

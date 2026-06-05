@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarDays, Search, X } from "lucide-react";
+import { CalendarDays, ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
 
 import { BranchFilter } from "@/components/branch-filter";
 import { Input } from "@/components/ui/input";
@@ -66,6 +66,14 @@ export function TransactionFilters({
   const [from, setFrom] = useState(fromDate);
   const [to, setTo] = useState(toDate);
   const [search, setSearch] = useState(searchQuery);
+  const hasAdvancedFilters =
+    Boolean(selectedBranchId) ||
+    selectedClientId !== "" ||
+    selectedProjectId !== "" ||
+    Boolean(fromDate) ||
+    Boolean(toDate);
+  const [showAdvancedFilters, setShowAdvancedFilters] =
+    useState(hasAdvancedFilters);
 
   useEffect(() => {
     setType(selectedType || "ALL");
@@ -74,13 +82,19 @@ export function TransactionFilters({
     setFrom(fromDate);
     setTo(toDate);
     setSearch(searchQuery);
+
+    if (hasAdvancedFilters) {
+      setShowAdvancedFilters(true);
+    }
   }, [
     selectedType,
+    selectedBranchId,
     selectedClientId,
     selectedProjectId,
     fromDate,
     toDate,
     searchQuery,
+    hasAdvancedFilters,
   ]);
 
   const filteredProjects =
@@ -202,9 +216,7 @@ export function TransactionFilters({
 
   return (
     <div className="border-b border-slate-100 bg-white px-4 py-3 lg:px-5">
-      <div className="flex min-w-0 flex-wrap items-center gap-2 2xl:flex-nowrap">
-        <BranchFilter basePath="/transactions" />
-
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <div className="flex max-w-full shrink-0 overflow-x-auto rounded-xl border border-slate-100 bg-slate-50 p-1">
           {transactionTypes.map((item) => (
             <button
@@ -234,53 +246,20 @@ export function TransactionFilters({
           />
         </div>
 
-        <Select value={clientId} onValueChange={handleClientChange}>
-          <SelectTrigger className="h-9 min-w-[140px] flex-1 rounded-xl border-slate-200 bg-white text-xs shadow-none focus:ring-2 focus:ring-slate-200 sm:w-[150px] sm:flex-none 2xl:shrink-0">
-            <SelectValue placeholder="All clients" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All clients</SelectItem>
-            {clients.map((client) => (
-              <SelectItem key={client.id} value={client.id}>
-                {client.companyName || client.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={projectId} onValueChange={handleProjectChange}>
-          <SelectTrigger className="h-9 min-w-[140px] flex-1 rounded-xl border-slate-200 bg-white text-xs shadow-none focus:ring-2 focus:ring-slate-200 sm:w-[150px] sm:flex-none 2xl:shrink-0">
-            <SelectValue placeholder="All projects" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All projects</SelectItem>
-            {filteredProjects.map((project) => (
-              <SelectItem key={project.id} value={project.id}>
-                {project.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="relative min-w-[130px] flex-1 sm:w-[140px] sm:flex-none 2xl:shrink-0">
-          <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-          <Input
-            type="date"
-            value={from}
-            onChange={(event) => handleFromChange(event.target.value)}
-            className="h-9 rounded-xl border-slate-200 bg-white pl-7 pr-2 text-xs shadow-none focus-visible:ring-2 focus-visible:ring-slate-200"
+        <button
+          type="button"
+          onClick={() => setShowAdvancedFilters((current) => !current)}
+          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
+          aria-expanded={showAdvancedFilters}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Filters
+          <ChevronDown
+            className={`h-3.5 w-3.5 transition-transform ${
+              showAdvancedFilters ? "rotate-180" : ""
+            }`}
           />
-        </div>
-
-        <div className="relative min-w-[130px] flex-1 sm:w-[140px] sm:flex-none 2xl:shrink-0">
-          <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-          <Input
-            type="date"
-            value={to}
-            onChange={(event) => handleToChange(event.target.value)}
-            className="h-9 rounded-xl border-slate-200 bg-white pl-7 pr-2 text-xs shadow-none focus-visible:ring-2 focus-visible:ring-slate-200"
-          />
-        </div>
+        </button>
 
         {hasActiveFilters ? (
           <button
@@ -293,6 +272,60 @@ export function TransactionFilters({
           </button>
         ) : null}
       </div>
+
+      {showAdvancedFilters ? (
+        <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+          <BranchFilter basePath="/transactions" />
+
+          <Select value={clientId} onValueChange={handleClientChange}>
+            <SelectTrigger className="h-9 min-w-[150px] flex-1 rounded-xl border-slate-200 bg-white text-xs shadow-none focus:ring-2 focus:ring-slate-200 sm:flex-none">
+              <SelectValue placeholder="All clients" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All clients</SelectItem>
+              {clients.map((client) => (
+                <SelectItem key={client.id} value={client.id}>
+                  {client.companyName || client.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={projectId} onValueChange={handleProjectChange}>
+            <SelectTrigger className="h-9 min-w-[150px] flex-1 rounded-xl border-slate-200 bg-white text-xs shadow-none focus:ring-2 focus:ring-slate-200 sm:flex-none">
+              <SelectValue placeholder="All projects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All projects</SelectItem>
+              {filteredProjects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="relative min-w-[140px] flex-1 sm:flex-none">
+            <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <Input
+              type="date"
+              value={from}
+              onChange={(event) => handleFromChange(event.target.value)}
+              className="h-9 rounded-xl border-slate-200 bg-white pl-7 pr-2 text-xs shadow-none focus-visible:ring-2 focus-visible:ring-slate-200"
+            />
+          </div>
+
+          <div className="relative min-w-[140px] flex-1 sm:flex-none">
+            <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <Input
+              type="date"
+              value={to}
+              onChange={(event) => handleToChange(event.target.value)}
+              className="h-9 rounded-xl border-slate-200 bg-white pl-7 pr-2 text-xs shadow-none focus-visible:ring-2 focus-visible:ring-slate-200"
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

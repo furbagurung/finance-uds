@@ -45,8 +45,8 @@ export default async function CategoriesPage() {
           <div>
             <h1 className="text-3xl font-bold text-slate-950">Categories</h1>
             <p className="mt-1 text-sm text-slate-500">
-              Manage default and custom finance categories for United Digital
-              Service.
+              Categories are used for accounting reports. Most users do not
+              need to change them daily.
             </p>
           </div>
 

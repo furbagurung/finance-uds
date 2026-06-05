@@ -210,7 +210,7 @@ export async function PATCH(
       nextRetainerBillingId = requestedRetainerBillingId;
     } else if (requestedRetainerBillingId) {
       return NextResponse.json(
-        { message: "Only income transactions can be linked to retainer billing." },
+        { message: "Only income transactions can be linked to monthly payments." },
         { status: 400 }
       );
     }
@@ -228,14 +228,14 @@ export async function PATCH(
 
       if (!retainerBilling) {
         return NextResponse.json(
-          { message: "Retainer billing not found." },
+          { message: "Monthly payment not found." },
           { status: 404 }
         );
       }
 
       if (retainerBilling.status === RetainerBillingStatus.WAIVED) {
         return NextResponse.json(
-          { message: "Waived retainer billings cannot receive linked payments." },
+          { message: "Waived monthly payments cannot receive linked payments." },
           { status: 400 }
         );
       }

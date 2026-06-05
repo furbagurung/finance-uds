@@ -50,7 +50,7 @@ export function RetainerBillingCreateModal({
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
           <button
             type="button"
-            aria-label="Close retainer billing modal"
+            aria-label="Close monthly payment modal"
             className="absolute inset-0 bg-slate-950/35 backdrop-blur-[2px]"
             onClick={() => setOpen(false)}
           />
@@ -59,10 +59,10 @@ export function RetainerBillingCreateModal({
             <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
               <div>
                 <h2 className="text-xl font-bold text-slate-950">
-                  Add Retainer Billing
+                  Add Monthly Payment
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Create a monthly billing record for a retainer project.
+                  Create a monthly payment tracking record for a project.
                 </p>
               </div>
 

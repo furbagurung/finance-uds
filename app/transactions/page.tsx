@@ -237,8 +237,8 @@ export default async function TransactionsPage({
               Transactions
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-slate-500">
-              Manage, track, and review income, expenses, investments, and
-              withdrawals.
+              Track money received and spent across clients, projects, and
+              branches.
             </p>
           </div>
 

@@ -127,7 +127,7 @@ export async function GET(
 
     if (!retainerBilling) {
       return NextResponse.json(
-        { message: "Retainer billing not found." },
+        { message: "Monthly payment not found." },
         { status: 404 },
       );
     }
@@ -137,7 +137,7 @@ export async function GET(
     console.error("Retainer billing GET error:", error);
 
     return NextResponse.json(
-      { message: "Failed to fetch retainer billing." },
+      { message: "Failed to fetch monthly payment." },
       { status: 500 },
     );
   }
@@ -169,7 +169,7 @@ export async function PATCH(
 
     if (!existingBilling) {
       return NextResponse.json(
-        { message: "Retainer billing not found." },
+        { message: "Monthly payment not found." },
         { status: 404 },
       );
     }
@@ -201,7 +201,7 @@ export async function PATCH(
       statusInput === undefined
     ) {
       return NextResponse.json(
-        { message: "Retainer billing update values must be valid." },
+        { message: "Monthly payment update values must be valid." },
         { status: 400 },
       );
     }
@@ -244,7 +244,7 @@ export async function PATCH(
       entity: "RETAINER_BILLING",
       entityId: retainerBilling.id,
       userId: user.id,
-      message: `Updated retainer billing: ${retainerBilling.project.name} ${retainerBilling.month}/${retainerBilling.year}`,
+      message: `Updated monthly payment: ${retainerBilling.project.name} ${retainerBilling.month}/${retainerBilling.year}`,
       metadata: {
         expectedAmount,
         receivedAmount,
@@ -254,14 +254,14 @@ export async function PATCH(
     });
 
     return NextResponse.json({
-      message: "Retainer billing updated successfully.",
+      message: "Monthly payment updated successfully.",
       retainerBilling,
     });
   } catch (error) {
     console.error("Retainer billing PATCH error:", error);
 
     return NextResponse.json(
-      { message: "Failed to update retainer billing." },
+      { message: "Failed to update monthly payment." },
       { status: 500 },
     );
   }

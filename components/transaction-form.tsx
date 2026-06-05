@@ -627,9 +627,9 @@ function RetainerBillingSelectField({
       items={items}
       value={value}
       onValueChange={onValueChange}
-      placeholder="Select retainer billing"
-      searchPlaceholder="Search billing..."
-      emptyMessage="No matching retainer billings found."
+      placeholder="Select payment month"
+      searchPlaceholder="Search payment month..."
+      emptyMessage="No matching monthly payments found."
     />
   );
 }
@@ -1292,12 +1292,12 @@ export function TransactionForm({
             {shouldShowRetainerBilling ? (
               <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-3 py-2">
                 <p className="text-sm font-semibold text-emerald-900">
-                  Monthly Retainer Project
+                  Monthly payment project
                 </p>
                 <p className="mt-1 text-xs text-emerald-800">
                   {filteredRetainerBillings.length === 1 &&
                   selectedRetainerBilling
-                    ? `Open billing: ${formatRetainerMonth(
+                    ? `Open payment month: ${formatRetainerMonth(
                         selectedRetainerBilling,
                       )} - Pending ${formatRetainerMoney(
                         selectedRetainerBilling.pendingAmount,
@@ -1305,11 +1305,15 @@ export function TransactionForm({
                       )}`
                     : null}
                   {filteredRetainerBillings.length > 1
-                    ? `${filteredRetainerBillings.length} open retainer months. Select one in Advanced Accounting Details.`
+                    ? `${filteredRetainerBillings.length} open payment months. Select one in Advanced Accounting Details.`
                     : null}
                   {filteredRetainerBillings.length === 0
-                    ? "No open retainer month found. You can still save this payment without linking."
+                    ? "No open payment month found. You can still save this payment without linking."
                     : null}
+                </p>
+                <p className="mt-1 text-xs text-emerald-800">
+                  Select the payment month only if you want this payment to
+                  update monthly tracking.
                 </p>
               </div>
             ) : null}
@@ -1496,7 +1500,7 @@ export function TransactionForm({
               filteredRetainerBillings.length > 1 ? (
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-slate-600">
-                    Select Retainer Month
+                    Payment Month
                   </Label>
                   <RetainerBillingSelectField
                     retainerBillings={filteredRetainerBillings}

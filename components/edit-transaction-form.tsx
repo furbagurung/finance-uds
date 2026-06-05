@@ -408,8 +408,8 @@ export function EditTransactionForm({
       <CardHeader>
         <CardTitle>Edit Transaction</CardTitle>
         <CardDescription>
-          Update transaction details, client, project, category, and billing
-          status.
+          Update transaction details, client, project, category, and monthly
+          payment tracking.
         </CardDescription>
       </CardHeader>
 
@@ -473,12 +473,12 @@ export function EditTransactionForm({
               {shouldShowRetainerBilling ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-3 py-2">
                   <p className="text-sm font-semibold text-emerald-900">
-                    Monthly Retainer Project
+                    Monthly payment project
                   </p>
                   <p className="mt-1 text-xs text-emerald-800">
                     {filteredRetainerBillings.length === 1 &&
                     selectedRetainerBilling
-                      ? `Open billing: ${formatRetainerMonth(
+                      ? `Open payment month: ${formatRetainerMonth(
                           selectedRetainerBilling,
                         )} - Pending ${formatRetainerMoney(
                           selectedRetainerBilling.pendingAmount,
@@ -486,11 +486,15 @@ export function EditTransactionForm({
                         )}`
                       : null}
                     {filteredRetainerBillings.length > 1
-                      ? `${filteredRetainerBillings.length} open retainer months. Select one in Advanced Accounting Details.`
+                      ? `${filteredRetainerBillings.length} open payment months. Select one in Advanced Accounting Details.`
                       : null}
                     {filteredRetainerBillings.length === 0
-                      ? "No open retainer month found. You can still save this payment without linking."
+                      ? "No open payment month found. You can still save this payment without linking."
                       : null}
+                  </p>
+                  <p className="mt-1 text-xs text-emerald-800">
+                    Select the payment month only if you want this payment to
+                    update monthly tracking.
                   </p>
                 </div>
               ) : null}
@@ -730,7 +734,7 @@ export function EditTransactionForm({
                 {shouldShowRetainerBilling &&
                 filteredRetainerBillings.length > 1 ? (
                   <div className="space-y-2">
-                    <Label>Select Retainer Month</Label>
+                    <Label>Payment Month</Label>
                     <Select
                       value={retainerBillingId || "NONE"}
                       onValueChange={(value) =>
@@ -738,10 +742,10 @@ export function EditTransactionForm({
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select retainer month" />
+                        <SelectValue placeholder="Select payment month" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="NONE">No retainer billing</SelectItem>
+                        <SelectItem value="NONE">No monthly payment</SelectItem>
                         {filteredRetainerBillings.map((billing) => (
                           <SelectItem key={billing.id} value={billing.id}>
                             {formatRetainerBillingLabel(billing)}

@@ -199,10 +199,10 @@ export default async function RetainersPage({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-950">
-              Retainer Billings
+              Monthly Payments
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Track monthly expected, received, and pending retainer payments.
+              Track expected, received, and pending monthly client payments.
             </p>
           </div>
 
@@ -253,7 +253,7 @@ export default async function RetainersPage({
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm font-medium text-slate-500">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                Paid Billings
+                Paid Payments
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -279,9 +279,9 @@ export default async function RetainersPage({
           <CardHeader>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <CardTitle>Billing Records</CardTitle>
+                <CardTitle>Monthly Payment Records</CardTitle>
                 <CardDescription>
-                  Manual retainer billing records by month and project.
+                  Monthly payment records by month and project.
                 </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -316,7 +316,7 @@ export default async function RetainersPage({
                       colSpan={9}
                       className="py-10 text-center text-sm text-slate-500"
                     >
-                      No retainer billings found.
+                      No monthly payments found.
                     </TableCell>
                   </TableRow>
                 ) : (
