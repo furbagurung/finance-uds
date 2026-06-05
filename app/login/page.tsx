@@ -60,9 +60,19 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <Card className="w-full max-w-md rounded-3xl border-white/10 bg-white shadow-2xl">
         <CardHeader className="space-y-2">
-          <p className="text-sm font-medium text-orange-500">
-            United Digital Service
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/uds.svg"
+                alt="United Digital Service logo"
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <p className="text-sm font-medium text-orange-500">
+              United Digital Service
+            </p>
+          </div>
 
           <CardTitle className="text-3xl text-slate-950">
             Finance Login

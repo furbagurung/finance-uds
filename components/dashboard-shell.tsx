@@ -35,6 +35,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -284,10 +285,10 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
     };
   }, []);
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 hidden border-r border-slate-200 bg-white transition-all duration-300 ease-in-out lg:block",
+          "fixed inset-y-0 left-0 z-30 hidden border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out lg:block",
           expanded ? "w-[300px]" : "w-20",
         )}
       >
@@ -310,8 +311,13 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                   expanded ? "grid-cols-[2.75rem_1fr] gap-3 opacity-100" : "w-0 opacity-0",
                 )}
               >
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-lg font-bold text-yellow-400 shadow-sm">
-                  U
+                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:ring-white/10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/uds.svg"
+                    alt="United Digital Service logo"
+                    className="h-full w-full object-cover"
+                  />
                 </div>
 
                 <div className="overflow-hidden whitespace-nowrap leading-tight">
@@ -525,7 +531,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
           expanded ? "lg:pl-[300px]" : "lg:pl-20",
         )}
       >
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+        <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
           <div className="grid h-16 grid-cols-[1fr_minmax(320px,560px)_1fr] items-center gap-4 px-6">
             <div className="group relative col-start-2 -ml-6 w-full justify-self-start rounded-full border border-slate-200 bg-white p-[1px] shadow-sm shadow-slate-200/50 transition-all duration-300 hover:border-transparent hover:bg-[linear-gradient(90deg,#f59e0b,#facc15,#38bdf8,#6366f1,#8b5cf6,#ec4899,#f59e0b)] hover:bg-[length:300%_300%] hover:animate-[gradientShift_3s_ease_infinite] hover:shadow-md hover:shadow-violet-100/60">
               <button
@@ -551,7 +557,9 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
               </button>
             </div>
 
-            <div className="col-start-3 flex shrink-0 items-center justify-end" />
+            <div className="col-start-3 flex shrink-0 items-center justify-end">
+              <ThemeToggle />
+            </div>
           </div>
         </header>
 
