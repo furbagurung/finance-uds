@@ -7,6 +7,7 @@ import { BranchFilter } from "@/components/branch-filter";
 import { getCurrentUser } from "@/lib/current-user";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { DashboardCashflowChart } from "@/components/dashboard-cashflow-chart";
+import { TodayDateWidget } from "@/components/today-date-widget";
 import { Badge } from "@/components/ui/badge";
 import { DashboardExpenseDonutChart } from "@/components/dashboard-expense-donut-chart";
 import { ClientCreateModal } from "@/components/client-create-modal";
@@ -227,16 +228,12 @@ export default async function DashboardPage({
   return (
     <DashboardShell user={user}>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4  p-5 lg:flex-row lg:items-center lg:justify-between">
-
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
-            Welcome back, {user.name}
-          </h1>
-
+        <div className="flex flex-col gap-3 p-2 sm:p-3 lg:flex-row lg:items-center lg:justify-between">
+          <TodayDateWidget />
           {/* DASHBOARD QUICK ACTIONS
     Soft premium pill buttons inspired by SaaS action buttons.
 */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 lg:justify-end">
             <BranchFilter basePath="/dashboard" />
 
             <TransactionCreateModal

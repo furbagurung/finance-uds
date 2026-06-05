@@ -139,6 +139,17 @@
 }
 
 @layer utilities {
+  .font-nepali {
+    font-family:
+      "Noto Sans Devanagari",
+      "Mangal",
+      "Kohinoor Devanagari",
+      "Nirmala UI",
+      "Arial Unicode MS",
+      var(--font-geist-sans),
+      sans-serif;
+  }
+
   .dark .bg-white,
   .dark .bg-slate-50,
   .dark .bg-slate-50\/25,
