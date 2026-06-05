@@ -1,8 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BranchSelectField } from "@/components/branch-select-field";
+import {
+  BranchSelectField,
+  type BranchOption,
+} from "@/components/branch-select-field";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -51,7 +55,14 @@ type Client = {
 type Project = {
   id: string;
   name: string;
+  projectType?: string | null;
+  currency?: string | null;
   clientId: string | null;
+  branchId?: string | null;
+  branch?: {
+    id: string;
+    currency: string;
+  } | null;
 };
 
 type RetainerBilling = {
@@ -95,6 +106,7 @@ type EditTransactionFormProps = {
   categories: Category[];
   clients: Client[];
   projects: Project[];
+  branches: BranchOption[];
   retainerBillings: RetainerBilling[];
 };
 
@@ -132,6 +144,26 @@ const monthLabels = new Map(
   ].map((label, index) => [index + 1, label]),
 );
 
+function getCurrencyPrefix(currency?: string | null) {
+  if (!currency || currency === "NPR") {
+    return "Rs.";
+  }
+
+  return currency;
+}
+
+function formatRetainerMoney(amount: string | number, currency?: string | null) {
+  return `${getCurrencyPrefix(currency)} ${Number(amount || 0).toLocaleString(
+    "en-IN"
+  )}`;
+}
+
+function formatRetainerMonth(billing: RetainerBilling) {
+  const monthLabel = monthLabels.get(billing.month) || String(billing.month);
+
+  return `${monthLabel} ${billing.year}`;
+}
+
 function toDateInputValue(date: Date) {
   return new Date(date).toISOString().slice(0, 10);
 }
@@ -141,6 +173,7 @@ export function EditTransactionForm({
   categories,
   clients,
   projects,
+  branches,
   retainerBillings,
 }: EditTransactionFormProps) {
   const router = useRouter();
@@ -161,12 +194,15 @@ export function EditTransactionForm({
     transaction.retainerBillingId || ""
   );
   const [branchId, setBranchId] = useState(transaction.branchId || "");
+  const [currency, setCurrency] = useState(transaction.currency || "");
+  const [currencyTouched, setCurrencyTouched] = useState(false);
   const [paidBy, setPaidBy] = useState(transaction.paidBy || "");
   const [doneFor, setDoneFor] = useState(transaction.doneFor || "");
   const [title, setTitle] = useState(transaction.title || "");
   const [isBillable, setIsBillable] = useState(transaction.isBillable);
   const [isReimbursed, setIsReimbursed] = useState(transaction.isReimbursed);
   const [notes, setNotes] = useState(transaction.notes || "");
+  const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -181,29 +217,68 @@ export function EditTransactionForm({
     return projects.filter((project) => project.clientId === clientId);
   }, [projects, clientId]);
 
+  const selectedProject = useMemo(() => {
+    return projects.find((project) => project.id === projectId) || null;
+  }, [projectId, projects]);
+
+  const selectedBranch = useMemo(() => {
+    return branches.find((branch) => branch.id === branchId) || null;
+  }, [branchId, branches]);
+
+  const shouldShowRetainerBilling =
+    type === "INCOME" &&
+    Boolean(selectedProject) &&
+    selectedProject?.projectType === "MONTHLY_RETAINER";
+
   const filteredRetainerBillings = useMemo(() => {
+    if (!shouldShowRetainerBilling || !projectId) {
+      return [];
+    }
+
     const openOrCurrentBillings = retainerBillings.filter(
       (billing) =>
         billing.id === retainerBillingId ||
-        (billing.status !== "PAID" && billing.status !== "WAIVED")
+        (billing.projectId === projectId &&
+          ["PENDING", "PARTIALLY_PAID", "OVERDUE"].includes(billing.status))
     );
 
-    if (projectId) {
-      return openOrCurrentBillings.filter(
-        (billing) =>
-          billing.projectId === projectId || billing.id === retainerBillingId
-      );
-    }
-
-    if (clientId) {
-      return openOrCurrentBillings.filter(
-        (billing) =>
-          billing.clientId === clientId || billing.id === retainerBillingId
-      );
-    }
-
     return openOrCurrentBillings;
-  }, [clientId, projectId, retainerBillingId, retainerBillings]);
+  }, [
+    projectId,
+    retainerBillingId,
+    retainerBillings,
+    shouldShowRetainerBilling,
+  ]);
+
+  const displayCurrency =
+    currency || selectedProject?.currency || selectedBranch?.currency || "NPR";
+
+  const selectedRetainerBilling = useMemo(() => {
+    return (
+      filteredRetainerBillings.find(
+        (billing) => billing.id === retainerBillingId
+      ) || null
+    );
+  }, [filteredRetainerBillings, retainerBillingId]);
+
+  useEffect(() => {
+    if (!shouldShowRetainerBilling) {
+      setRetainerBillingId("");
+      return;
+    }
+
+    if (filteredRetainerBillings.length === 1) {
+      setRetainerBillingId(filteredRetainerBillings[0].id);
+      return;
+    }
+
+    if (
+      retainerBillingId &&
+      !filteredRetainerBillings.some((billing) => billing.id === retainerBillingId)
+    ) {
+      setRetainerBillingId("");
+    }
+  }, [filteredRetainerBillings, retainerBillingId, shouldShowRetainerBilling]);
 
   function handleTypeChange(value: string) {
     const nextType = value as TransactionType;
@@ -228,19 +303,52 @@ export function EditTransactionForm({
   }
 
   function handleProjectChange(value: string) {
+    const selectedProject =
+      projects.find((project) => project.id === value) || null;
+
     setProjectId(value);
-    setRetainerBillingId("");
+    if (selectedProject?.projectType !== "MONTHLY_RETAINER") {
+      setRetainerBillingId("");
+    }
+
+    if (!clientId && selectedProject?.clientId) {
+      setClientId(selectedProject.clientId);
+    }
+
+    if (selectedProject?.branchId) {
+      setBranchId(selectedProject.branchId);
+    }
+
+    if (!currencyTouched) {
+      setCurrency(selectedProject?.currency || selectedProject?.branch?.currency || "");
+    }
+  }
+
+  function handleBranchChange(value: string) {
+    setBranchId(value);
+
+    if (currencyTouched) return;
+
+    const selectedBranch = branches.find((branch) => branch.id === value);
+    setCurrency(selectedBranch?.currency || "");
+  }
+
+  function handleCurrencyChange(value: string) {
+    setCurrencyTouched(true);
+    setCurrency(value.toUpperCase());
   }
 
   function formatRetainerBillingLabel(billing: RetainerBilling) {
     const monthLabel = monthLabels.get(billing.month) || String(billing.month);
+    const expectedAmount = Number(billing.expectedAmount || 0).toLocaleString(
+      "en-IN"
+    );
     const pendingAmount = Number(billing.pendingAmount || 0).toLocaleString(
       "en-IN"
     );
+    const currencyPrefix = getCurrencyPrefix(billing.currency);
 
-    return `${billing.project?.name || "Retainer billing"} - ${monthLabel} ${
-      billing.year
-    } - Pending ${billing.currency || ""} ${pendingAmount}`;
+    return `${monthLabel} ${billing.year} - Expected ${currencyPrefix} ${expectedAmount} - Pending ${currencyPrefix} ${pendingAmount}`;
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -265,9 +373,12 @@ export function EditTransactionForm({
           clientId: clientId || null,
           projectId: projectId || null,
           retainerBillingId:
-            type === "INCOME" && retainerBillingId ? retainerBillingId : null,
+            shouldShowRetainerBilling && retainerBillingId
+              ? retainerBillingId
+              : null,
           branchId: branchId || null,
           branchIdTouched: true,
+          currency: currency || null,
           paidBy,
           doneFor,
           isBillable: type === "EXPENSE" ? isBillable : false,
@@ -304,196 +415,161 @@ export function EditTransactionForm({
 
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Transaction Type</Label>
-              <Select value={type} onValueChange={handleTypeChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {transactionTypes.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Input
-                type="date"
-                value={date}
-                onChange={(event) => setDate(event.target.value)}
-              />
-            </div>
-          </div>
-
           <div className="space-y-2">
-            <Label>Branch</Label>
-            <BranchSelectField
-              value={branchId}
-              onValueChange={setBranchId}
-              placeholder="Select branch"
-              showCurrency
-              allowUnassigned
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Amount</Label>
-              <Input
-                type="number"
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-                min="1"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Payment Method</Label>
-              <Select
-                value={paymentMethod}
-                onValueChange={(value) =>
-                  setPaymentMethod(value as PaymentMethod)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethods.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item.replaceAll("_", " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {type === "EXPENSE" ? (
-            <div className="space-y-2">
-              <Label>Expense Scope</Label>
-              <Select
-                value={expenseScope}
-                onValueChange={(value) => setExpenseScope(value as ExpenseScope)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select expense scope" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="COMPANY">Company Expense</SelectItem>
-                  <SelectItem value="CLIENT">
-                    Client / Project Expense
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null}
-
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
+            <Label>Transaction Type</Label>
+            <Select value={type} onValueChange={handleTypeChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                {filteredCategories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                {transactionTypes.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Client</Label>
-              <Select value={clientId} onValueChange={handleClientChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.companyName || client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Project</Label>
-              <Select value={projectId} onValueChange={handleProjectChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredProjects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           {type === "INCOME" ? (
-            <div className="space-y-2 rounded-xl border bg-slate-50 p-4">
-              <Label>
-                Link to Retainer Billing
-                <span className="ml-1 font-normal text-slate-400">
-                  Optional
-                </span>
-              </Label>
-              <Select
-                value={retainerBillingId || "NONE"}
-                onValueChange={(value) =>
-                  setRetainerBillingId(value === "NONE" ? "" : value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select retainer billing" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="NONE">No retainer billing</SelectItem>
-                  {filteredRetainerBillings.map((billing) => (
-                    <SelectItem key={billing.id} value={billing.id}>
-                      {formatRetainerBillingLabel(billing)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Client & Project
+              </h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Client</Label>
+                  <Select value={clientId} onValueChange={handleClientChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.companyName || client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Project</Label>
+                  <Select value={projectId} onValueChange={handleProjectChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredProjects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {shouldShowRetainerBilling ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-3 py-2">
+                  <p className="text-sm font-semibold text-emerald-900">
+                    Monthly Retainer Project
+                  </p>
+                  <p className="mt-1 text-xs text-emerald-800">
+                    {filteredRetainerBillings.length === 1 &&
+                    selectedRetainerBilling
+                      ? `Open billing: ${formatRetainerMonth(
+                          selectedRetainerBilling,
+                        )} - Pending ${formatRetainerMoney(
+                          selectedRetainerBilling.pendingAmount,
+                          selectedRetainerBilling.currency,
+                        )}`
+                      : null}
+                    {filteredRetainerBillings.length > 1
+                      ? `${filteredRetainerBillings.length} open retainer months. Select one in Advanced Accounting Details.`
+                      : null}
+                    {filteredRetainerBillings.length === 0
+                      ? "No open retainer month found. You can still save this payment without linking."
+                      : null}
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Paid By / Source</Label>
-              <Input
-                value={paidBy}
-                onChange={(event) => setPaidBy(event.target.value)}
-              />
-            </div>
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-slate-900">
+              Payment Details
+            </h3>
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center border-r border-slate-200 px-2.5 text-sm font-medium text-slate-500">
+                    {getCurrencyPrefix(displayCurrency)}
+                  </span>
+                  <Input
+                    type="number"
+                    value={amount}
+                    onChange={(event) => setAmount(event.target.value)}
+                    min="1"
+                    className="pl-12"
+                  />
+                </div>
+              </div>
 
-            <div className="space-y-2">
-              <Label>Done For</Label>
-              <Input
-                value={doneFor}
-                onChange={(event) => setDoneFor(event.target.value)}
-              />
+              {type === "EXPENSE" ? (
+                <div className="space-y-2">
+                  <Label>Expense Category</Label>
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredCategories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+
+              <div className="space-y-2">
+                <Label>Payment Method</Label>
+                <Select
+                  value={paymentMethod}
+                  onValueChange={(value) =>
+                    setPaymentMethod(value as PaymentMethod)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentMethods.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {item.replaceAll("_", " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(event) => setDate(event.target.value)}
+                />
+              </div>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Title</Label>
+            <Label>Remarks</Label>
             <Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
@@ -501,38 +577,191 @@ export function EditTransactionForm({
           </div>
 
           {type === "EXPENSE" ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="flex items-center gap-3 rounded-xl border p-4">
-                <Checkbox
-                  checked={isBillable}
-                  onCheckedChange={(checked) =>
-                    setIsBillable(Boolean(checked))
+            <>
+              <div className="space-y-2">
+                <Label>Expense Scope</Label>
+                <Select
+                  value={expenseScope}
+                  onValueChange={(value) =>
+                    setExpenseScope(value as ExpenseScope)
                   }
-                />
-                <span className="text-sm font-medium">Billable to client</span>
-              </label>
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select expense scope" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="COMPANY">Company Expense</SelectItem>
+                    <SelectItem value="CLIENT">
+                      Client / Project Expense
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <label className="flex items-center gap-3 rounded-xl border p-4">
-                <Checkbox
-                  checked={isReimbursed}
-                  onCheckedChange={(checked) =>
-                    setIsReimbursed(Boolean(checked))
-                  }
-                />
-                <span className="text-sm font-medium">
-                  Reimbursed by client
-                </span>
-              </label>
-            </div>
+              <div className="space-y-3 rounded-xl border p-4">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Optional Client/Project Link
+                </h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Client</Label>
+                    <Select value={clientId} onValueChange={handleClientChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.companyName || client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Project</Label>
+                    <Select value={projectId} onValueChange={handleProjectChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select project" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredProjects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="flex items-center gap-3 rounded-xl border p-4">
+                    <Checkbox
+                      checked={isBillable}
+                      onCheckedChange={(checked) =>
+                        setIsBillable(Boolean(checked))
+                      }
+                    />
+                    <span className="text-sm font-medium">
+                      Billable to client
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-3 rounded-xl border p-4">
+                    <Checkbox
+                      checked={isReimbursed}
+                      onCheckedChange={(checked) =>
+                        setIsReimbursed(Boolean(checked))
+                      }
+                    />
+                    <span className="text-sm font-medium">
+                      Reimbursed by client
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </>
           ) : null}
 
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <Textarea
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Add extra details..."
-            />
+          <div className="rounded-xl border border-slate-200 bg-white">
+            <button
+              type="button"
+              onClick={() => setShowAdvancedDetails((current) => !current)}
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+              aria-expanded={showAdvancedDetails}
+            >
+              <span className="text-sm font-medium text-slate-900">
+                Advanced Accounting Details
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 text-slate-500 transition-transform ${
+                  showAdvancedDetails ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {showAdvancedDetails ? (
+              <div className="space-y-4 border-t border-slate-200 p-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  {type !== "EXPENSE" ? (
+                    <div className="space-y-2">
+                      <Label>Category</Label>
+                      <Select value={categoryId} onValueChange={setCategoryId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredCategories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
+
+                  <div className="space-y-2">
+                    <Label>Branch</Label>
+                    <BranchSelectField
+                      value={branchId}
+                      onValueChange={handleBranchChange}
+                      placeholder="Select branch"
+                      showCurrency
+                      branches={branches}
+                      allowUnassigned
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Currency</Label>
+                    <Input
+                      value={currency}
+                      onChange={(event) =>
+                        handleCurrencyChange(event.target.value)
+                      }
+                      placeholder={selectedBranch?.currency || "NPR"}
+                    />
+                  </div>
+                </div>
+
+                {shouldShowRetainerBilling &&
+                filteredRetainerBillings.length > 1 ? (
+                  <div className="space-y-2">
+                    <Label>Select Retainer Month</Label>
+                    <Select
+                      value={retainerBillingId || "NONE"}
+                      onValueChange={(value) =>
+                        setRetainerBillingId(value === "NONE" ? "" : value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select retainer month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">No retainer billing</SelectItem>
+                        {filteredRetainerBillings.map((billing) => (
+                          <SelectItem key={billing.id} value={billing.id}>
+                            {formatRetainerBillingLabel(billing)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+
+                <div className="space-y-2">
+                  <Label>Additional Notes</Label>
+                  <Textarea
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    placeholder="Add extra details..."
+                  />
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {error ? (

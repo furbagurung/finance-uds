@@ -60,9 +60,12 @@ const billingCycles: BillingCycle[] = [
 type CreatedProject = {
   id: string;
   name: string;
+  projectType?: ProjectType | null;
+  currency?: string | null;
   clientId?: string | null;
   client?: Client | null;
   branchId?: string | null;
+  branch?: BranchOption | null;
 };
 
 type ProjectFormProps = {

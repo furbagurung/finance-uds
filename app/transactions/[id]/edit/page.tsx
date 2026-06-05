@@ -32,7 +32,7 @@ export default async function EditTransactionPage({
     notFound();
   }
 
-  const [categories, clients, projects, retainerBillings] = await Promise.all([
+  const [categories, clients, projects, branches, retainerBillings] = await Promise.all([
     prisma.category.findMany({
     orderBy: [
       {
@@ -65,8 +65,35 @@ export default async function EditTransactionPage({
     select: {
       id: true,
       name: true,
+      projectType: true,
+      currency: true,
       clientId: true,
+      branchId: true,
+      branch: {
+        select: {
+          id: true,
+          currency: true,
+        },
+      },
     },
+    }),
+    prisma.branch.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        country: true,
+        currency: true,
+        calendarSystem: true,
+        fiscalYearType: true,
+        isActive: true,
+      },
     }),
     prisma.retainerBilling.findMany({
       where: {
@@ -91,7 +118,16 @@ export default async function EditTransactionPage({
           select: {
             id: true,
             name: true,
+            projectType: true,
+            currency: true,
             clientId: true,
+            branchId: true,
+            branch: {
+              select: {
+                id: true,
+                currency: true,
+              },
+            },
           },
         },
         client: {
@@ -135,6 +171,7 @@ export default async function EditTransactionPage({
           categories={categories}
           clients={clients}
           projects={projects}
+          branches={branches}
           retainerBillings={plainRetainerBillings}
         />
       </div>

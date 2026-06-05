@@ -4,7 +4,10 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { BranchSelectField } from "@/components/branch-select-field";
+import {
+  BranchSelectField,
+  type BranchOption,
+} from "@/components/branch-select-field";
 import { Button } from "@/components/ui/button";
 import { CategoryForm } from "@/components/category-form";
 import { ProjectForm } from "@/components/project-form";
@@ -63,6 +66,7 @@ type Project = {
   id: string;
   name: string;
   projectType?: string | null;
+  currency?: string | null;
   clientId?: string | null;
   client?: Client | null;
   branchId?: string | null;
@@ -145,6 +149,27 @@ function getValidTransactionType(value?: string): TransactionType | null {
 
 function getClientDisplayName(client: Client) {
   return client.companyName || client.name;
+}
+
+function getCurrencyPrefix(currency?: string | null) {
+  if (!currency || currency === "NPR") {
+    return "Rs.";
+  }
+
+  return currency;
+}
+
+function formatRetainerMoney(amount: string | number, currency?: string | null) {
+  return `${getCurrencyPrefix(currency)} ${Number(amount || 0).toLocaleString(
+    "en-IN",
+  )}`;
+}
+
+function formatRetainerMonth(billing: RetainerBilling) {
+  const monthLabel =
+    monthLabels.get(String(billing.month)) || String(billing.month);
+
+  return `${monthLabel} ${billing.year}`;
 }
 
 function getClientInitials(client: Client) {
@@ -583,14 +608,17 @@ function RetainerBillingSelectField({
   const items = retainerBillings.map((billing) => {
     const monthLabel =
       monthLabels.get(String(billing.month)) || String(billing.month);
-    const projectName = billing.project?.name || "Retainer billing";
+    const currencyPrefix = getCurrencyPrefix(billing.currency);
+    const expectedAmount = Number(billing.expectedAmount || 0).toLocaleString(
+      "en-IN",
+    );
     const pendingAmount = Number(billing.pendingAmount || 0).toLocaleString(
       "en-IN",
     );
 
     return {
       id: billing.id,
-      name: `${projectName} - ${monthLabel} ${billing.year} - Pending ${billing.currency || ""} ${pendingAmount}`,
+      name: `${monthLabel} ${billing.year} - Expected ${currencyPrefix} ${expectedAmount} - Pending ${currencyPrefix} ${pendingAmount}`,
     };
   });
 
@@ -716,6 +744,7 @@ export function TransactionForm({
   const [categories, setCategories] = useState<Category[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [branches, setBranches] = useState<BranchOption[]>([]);
   const [retainerBillings, setRetainerBillings] = useState<RetainerBilling[]>(
     [],
   );
@@ -738,6 +767,8 @@ export function TransactionForm({
   const [retainerBillingId, setRetainerBillingId] = useState("");
   const [branchId, setBranchId] = useState("");
   const [branchIdTouched, setBranchIdTouched] = useState(false);
+  const [currency, setCurrency] = useState("");
+  const [currencyTouched, setCurrencyTouched] = useState(false);
   const [paidBy, setPaidBy] = useState("");
   const [doneFor, setDoneFor] = useState("");
   const [title, setTitle] = useState("");
@@ -773,21 +804,38 @@ export function TransactionForm({
     return projects.filter((project) => project.clientId === clientId);
   }, [projects, clientId]);
 
+  const selectedProject = useMemo(() => {
+    return projects.find((project) => project.id === projectId) || null;
+  }, [projectId, projects]);
+
+  const selectedBranch = useMemo(() => {
+    return branches.find((branch) => branch.id === branchId) || null;
+  }, [branchId, branches]);
+
+  const shouldShowRetainerBilling =
+    type === "INCOME" &&
+    Boolean(selectedProject) &&
+    selectedProject?.projectType === "MONTHLY_RETAINER";
+
   const filteredRetainerBillings = useMemo(() => {
-    const openBillings = retainerBillings.filter(
-      (billing) => billing.status !== "PAID" && billing.status !== "WAIVED",
+    if (!shouldShowRetainerBilling || !projectId) {
+      return [];
+    }
+
+    return retainerBillings.filter(
+      (billing) =>
+        billing.projectId === projectId &&
+        ["PENDING", "PARTIALLY_PAID", "OVERDUE"].includes(billing.status),
     );
+  }, [projectId, retainerBillings, shouldShowRetainerBilling]);
 
-    if (projectId) {
-      return openBillings.filter((billing) => billing.projectId === projectId);
-    }
-
-    if (clientId) {
-      return openBillings.filter((billing) => billing.clientId === clientId);
-    }
-
-    return openBillings;
-  }, [clientId, projectId, retainerBillings]);
+  const selectedRetainerBilling = useMemo(() => {
+    return (
+      filteredRetainerBillings.find(
+        (billing) => billing.id === retainerBillingId,
+      ) || null
+    );
+  }, [filteredRetainerBillings, retainerBillingId]);
 
   const salaryNetPay = useMemo(() => {
     const basic = Number(salaryBasicSalary || 0);
@@ -798,6 +846,11 @@ export function TransactionForm({
   }, [salaryBasicSalary, salaryBonus, salaryDeduction]);
 
   const saveLabel = transactionActionLabels[type] || "Save Transaction";
+  const displayCurrency =
+    currency ||
+    getProjectCurrency(selectedProject) ||
+    selectedBranch?.currency ||
+    "NPR";
 
   useEffect(() => {
     if (!defaultTransactionType) return;
@@ -820,20 +873,20 @@ export function TransactionForm({
         clientsResponse,
         projectsResponse,
         employeesResponse,
-        retainerBillingsResponse,
+        branchesResponse,
       ] = await Promise.all([
         fetch("/api/categories"),
         fetch("/api/clients"),
         fetch("/api/projects"),
         fetch("/api/employees"),
-        fetch("/api/retainer-billings?status=PENDING,PARTIALLY_PAID,OVERDUE"),
+        fetch("/api/branches"),
       ]);
 
       const categoriesData = await categoriesResponse.json();
       const clientsData = await clientsResponse.json();
       const projectsData = await projectsResponse.json();
       const employeesData = await employeesResponse.json();
-      const retainerBillingsData = await retainerBillingsResponse.json();
+      const branchesData = await branchesResponse.json();
 
       if (categoriesResponse.ok) {
         setCategories(categoriesData.categories || []);
@@ -849,13 +902,61 @@ export function TransactionForm({
       if (employeesResponse.ok) {
         setEmployees(employeesData.employees || []);
       }
-      if (retainerBillingsResponse.ok) {
-        setRetainerBillings(retainerBillingsData.retainerBillings || []);
+      if (branchesResponse.ok) {
+        setBranches(branchesData.branches || []);
       }
     }
 
     loadInitialData();
   }, []);
+
+  useEffect(() => {
+    if (!shouldShowRetainerBilling || !projectId) {
+      setRetainerBillings([]);
+      setRetainerBillingId("");
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadProjectRetainers() {
+      const response = await fetch(
+        `/api/retainer-billings?projectId=${encodeURIComponent(
+          projectId,
+        )}&status=PENDING,PARTIALLY_PAID,OVERDUE`,
+      );
+      const data = await response.json();
+
+      if (!ignore && response.ok) {
+        setRetainerBillings(data.retainerBillings || []);
+      }
+    }
+
+    loadProjectRetainers();
+
+    return () => {
+      ignore = true;
+    };
+  }, [projectId, shouldShowRetainerBilling]);
+
+  useEffect(() => {
+    if (!shouldShowRetainerBilling) {
+      setRetainerBillingId("");
+      return;
+    }
+
+    if (filteredRetainerBillings.length === 1) {
+      setRetainerBillingId(filteredRetainerBillings[0].id);
+      return;
+    }
+
+    if (
+      retainerBillingId &&
+      !filteredRetainerBillings.some((billing) => billing.id === retainerBillingId)
+    ) {
+      setRetainerBillingId("");
+    }
+  }, [filteredRetainerBillings, retainerBillingId, shouldShowRetainerBilling]);
 
   function handleTypeChange(value: string) {
     const nextType = value as TransactionType;
@@ -899,6 +1000,20 @@ export function TransactionForm({
     return employee?.branchId || employee?.branch?.id || "";
   }
 
+  function getProjectCurrency(project: Project | null | undefined) {
+    return project?.currency || project?.branch?.currency || "";
+  }
+
+  function getClientCurrency(client: Client | null | undefined) {
+    return client?.branch?.currency || "";
+  }
+
+  function setInferredCurrency(nextCurrency: string | null | undefined) {
+    if (!nextCurrency || currencyTouched) return;
+
+    setCurrency(nextCurrency);
+  }
+
   function inferBranchFromProjectOrClient(
     nextProjectId: string,
     nextClientId: string,
@@ -911,24 +1026,49 @@ export function TransactionForm({
       clients.find((client) => client.id === nextClientId) || null;
 
     setBranchId(getProjectBranchId(selectedProject) || getClientBranchId(nextClient));
+    setInferredCurrency(
+      getProjectCurrency(selectedProject) || getClientCurrency(nextClient),
+    );
   }
 
   function handleClientChange(value: string) {
+    const selectedClient = clients.find((client) => client.id === value) || null;
+
     setClientId(value);
     setProjectId("");
     setRetainerBillingId("");
+    setInferredCurrency(getClientCurrency(selectedClient));
     inferBranchFromProjectOrClient("", value);
   }
 
   function handleProjectChange(value: string) {
+    const selectedProject =
+      projects.find((project) => project.id === value) || null;
+
     setProjectId(value);
-    setRetainerBillingId("");
+    if (selectedProject?.projectType !== "MONTHLY_RETAINER") {
+      setRetainerBillingId("");
+    }
+
+    if (!clientId && selectedProject?.clientId) {
+      setClientId(selectedProject.clientId);
+    }
+
+    setInferredCurrency(getProjectCurrency(selectedProject));
     inferBranchFromProjectOrClient(value, clientId);
   }
 
   function handleBranchChange(value: string) {
     setBranchId(value);
     setBranchIdTouched(true);
+
+    const selectedBranch = branches.find((branch) => branch.id === value);
+    setInferredCurrency(selectedBranch?.currency);
+  }
+
+  function handleCurrencyChange(value: string) {
+    setCurrencyTouched(true);
+    setCurrency(value.toUpperCase());
   }
 
   function handleSalaryEmployeeChange(value: string) {
@@ -998,9 +1138,12 @@ export function TransactionForm({
           clientId: clientId || null,
           projectId: projectId || null,
           retainerBillingId:
-            type === "INCOME" && retainerBillingId ? retainerBillingId : null,
+            shouldShowRetainerBilling && retainerBillingId
+              ? retainerBillingId
+              : null,
           branchId: branchId || null,
           branchIdTouched,
+          currency: currency || null,
           paidBy: null,
           doneFor: isSalaryExpense ? doneFor : title,
           isBillable: type === "EXPENSE" ? isBillable : false,
@@ -1044,65 +1187,31 @@ export function TransactionForm({
       onSubmit={handleSubmit}
       className="flex min-h-0 flex-col rounded-b-2xl bg-white"
     >
-      <div className="space-y-3 px-5 py-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-slate-600">Amount</Label>
-            <div className="relative">
-              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center border-r border-slate-200 px-2.5 text-sm font-medium text-slate-500">
-                Rs.
-              </span>
-              <Input
-                type="number"
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-                placeholder="2075"
-                min="1"
-                className="pl-12"
-              />
-            </div>
-          </div>
-
+      <div className="space-y-4 px-5 py-4">
+        {!isTypeLocked ? (
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-slate-600">
-              Payment Method
+              Transaction Type
             </Label>
-            <Select
-              value={paymentMethod}
-              onValueChange={(value) =>
-                setPaymentMethod(value as PaymentMethod)
-              }
-            >
+            <Select value={type} onValueChange={handleTypeChange}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select payment method" />
+                <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                {paymentMethods.map((item) => (
+                {transactionTypes.map((item) => (
                   <SelectItem key={item} value={item}>
-                    {item.replaceAll("_", " ")}
+                    {item}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-slate-600">Branch</Label>
-          <BranchSelectField
-            value={branchId}
-            onValueChange={handleBranchChange}
-            placeholder="Select branch"
-            showCurrency
-            allowUnassigned
-            triggerClassName="w-full"
-          />
-        </div>
+        ) : null}
 
         {type === "INCOME" ? (
-          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+          <div className="space-y-3">
             <h3 className="text-sm font-semibold text-slate-900">
-              Client Payment Details
+              Client & Project
             </h3>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1129,6 +1238,7 @@ export function TransactionForm({
 
                     setClientId(client.id);
                     setProjectId("");
+                    setInferredCurrency(getClientCurrency(client));
                     if (!branchIdTouched) {
                       setBranchId(getClientBranchId(client));
                     }
@@ -1162,6 +1272,10 @@ export function TransactionForm({
                     });
 
                     setProjectId(project.id);
+                    if (!clientId && project.clientId) {
+                      setClientId(project.clientId);
+                    }
+                    setInferredCurrency(getProjectCurrency(project));
                     if (!branchIdTouched) {
                       setBranchId(
                         getProjectBranchId(project) ||
@@ -1175,75 +1289,110 @@ export function TransactionForm({
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-slate-600">
-                Link to Retainer Billing
-                <span className="ml-1 font-normal text-slate-400">
-                  Optional
-                </span>
-              </Label>
-              <RetainerBillingSelectField
-                retainerBillings={filteredRetainerBillings}
-                value={retainerBillingId}
-                onValueChange={setRetainerBillingId}
-              />
-            </div>
+            {shouldShowRetainerBilling ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-3 py-2">
+                <p className="text-sm font-semibold text-emerald-900">
+                  Monthly Retainer Project
+                </p>
+                <p className="mt-1 text-xs text-emerald-800">
+                  {filteredRetainerBillings.length === 1 &&
+                  selectedRetainerBilling
+                    ? `Open billing: ${formatRetainerMonth(
+                        selectedRetainerBilling,
+                      )} - Pending ${formatRetainerMoney(
+                        selectedRetainerBilling.pendingAmount,
+                        selectedRetainerBilling.currency,
+                      )}`
+                    : null}
+                  {filteredRetainerBillings.length > 1
+                    ? `${filteredRetainerBillings.length} open retainer months. Select one in Advanced Accounting Details.`
+                    : null}
+                  {filteredRetainerBillings.length === 0
+                    ? "No open retainer month found. You can still save this payment without linking."
+                    : null}
+                </p>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-slate-600">Category</Label>
-          <CategorySelectField
-            categories={filteredCategories}
-            value={categoryId}
-            onValueChange={setCategoryId}
-            transactionType={type}
-            onCreated={(category) => {
-              setCategories((currentCategories) => {
-                const categoryExists = currentCategories.some(
-                  (currentCategory) => currentCategory.id === category.id
-                );
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+          <h3 className="text-sm font-semibold text-slate-900">
+            Payment Details
+          </h3>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-slate-600">Amount</Label>
+            <div className="relative">
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center border-r border-slate-200 px-2.5 text-sm font-medium text-slate-500">
+                {getCurrencyPrefix(displayCurrency)}
+              </span>
+              <Input
+                type="number"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                placeholder="2075"
+                min="1"
+                className="pl-12"
+              />
+            </div>
+          </div>
 
-                if (categoryExists) {
-                  return currentCategories;
-                }
-
-                return [...currentCategories, category].sort((a, b) =>
-                  a.name.localeCompare(b.name)
-                );
-              });
-
-              setCategoryId(category.id);
-            }}
-          />
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          {!isTypeLocked ? (
+          {type === "EXPENSE" ? (
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-slate-600">
-                Transaction Type
+                Expense Category
               </Label>
-              <Select value={type} onValueChange={handleTypeChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {transactionTypes.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CategorySelectField
+                categories={filteredCategories}
+                value={categoryId}
+                onValueChange={setCategoryId}
+                transactionType={type}
+                onCreated={(category) => {
+                  setCategories((currentCategories) => {
+                    const categoryExists = currentCategories.some(
+                      (currentCategory) => currentCategory.id === category.id
+                    );
+
+                    if (categoryExists) {
+                      return currentCategories;
+                    }
+
+                    return [...currentCategories, category].sort((a, b) =>
+                      a.name.localeCompare(b.name)
+                    );
+                  });
+
+                  setCategoryId(category.id);
+                }}
+              />
             </div>
           ) : null}
 
-          <div
-            className={
-              isTypeLocked ? "space-y-1.5 sm:col-span-2" : "space-y-1.5"
-            }
-          >
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-slate-600">
+              Payment Method
+            </Label>
+            <Select
+              value={paymentMethod}
+              onValueChange={(value) =>
+                setPaymentMethod(value as PaymentMethod)
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item.replaceAll("_", " ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
             <Label className="text-xs font-medium text-slate-600">Date</Label>
             <Input
               type="date"
@@ -1251,6 +1400,7 @@ export function TransactionForm({
               onChange={(event) => setDate(event.target.value)}
             />
           </div>
+        </div>
         </div>
 
         <div className="space-y-1.5">
@@ -1262,6 +1412,124 @@ export function TransactionForm({
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Enter remarks here..."
           />
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white">
+          <button
+            type="button"
+            onClick={() => setShowOptionalDetails((current) => !current)}
+            className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
+            aria-expanded={showOptionalDetails}
+          >
+            <span className="text-sm font-medium text-slate-900">
+              Advanced Accounting Details
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 text-slate-500 transition-transform ${
+                showOptionalDetails ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {showOptionalDetails ? (
+            <div className="space-y-3 border-t border-slate-200 px-3 py-3">
+              <div className="grid gap-3 sm:grid-cols-3">
+                {type !== "EXPENSE" ? (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-slate-600">
+                      Category
+                    </Label>
+                    <CategorySelectField
+                      categories={filteredCategories}
+                      value={categoryId}
+                      onValueChange={setCategoryId}
+                      transactionType={type}
+                      onCreated={(category) => {
+                        setCategories((currentCategories) => {
+                          const categoryExists = currentCategories.some(
+                            (currentCategory) => currentCategory.id === category.id
+                          );
+
+                          if (categoryExists) {
+                            return currentCategories;
+                          }
+
+                          return [...currentCategories, category].sort((a, b) =>
+                            a.name.localeCompare(b.name)
+                          );
+                        });
+
+                        setCategoryId(category.id);
+                      }}
+                    />
+                  </div>
+                ) : null}
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-slate-600">
+                Branch
+              </Label>
+              <BranchSelectField
+                value={branchId}
+                onValueChange={handleBranchChange}
+                placeholder="Select branch"
+                showCurrency
+                branches={branches}
+                allowUnassigned
+                triggerClassName="w-full"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-slate-600">
+                Currency
+              </Label>
+              <Input
+                value={currency}
+                onChange={(event) => handleCurrencyChange(event.target.value)}
+                placeholder={selectedBranch?.currency || "NPR"}
+              />
+            </div>
+              </div>
+
+              {shouldShowRetainerBilling &&
+              filteredRetainerBillings.length > 1 ? (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-slate-600">
+                    Select Retainer Month
+                  </Label>
+                  <RetainerBillingSelectField
+                    retainerBillings={filteredRetainerBillings}
+                    value={retainerBillingId}
+                    onValueChange={setRetainerBillingId}
+                  />
+                </div>
+              ) : null}
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-slate-600">
+                  Receipt / Invoice
+                </Label>
+                <Input
+                  type="file"
+                  accept=".pdf,image/jpeg,image/png,image/webp"
+                  onChange={(event) => setFile(event.target.files?.[0] || null)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-slate-600">
+                  Additional Notes
+                </Label>
+                <Textarea
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Add extra details..."
+                  className="min-h-16"
+                />
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {type === "EXPENSE" ? (
@@ -1447,8 +1715,11 @@ export function TransactionForm({
           </div>
         ) : null}
 
-        {type === "EXPENSE" && expenseScope === "CLIENT" ? (
-          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+        {type === "EXPENSE" ? (
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+            <h3 className="text-sm font-semibold text-slate-900">
+              Optional Client/Project Link
+            </h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-slate-600">
@@ -1473,6 +1744,7 @@ export function TransactionForm({
 
                     setClientId(client.id);
                     setProjectId("");
+                    setInferredCurrency(getClientCurrency(client));
                     if (!branchIdTouched) {
                       setBranchId(getClientBranchId(client));
                     }
@@ -1503,6 +1775,10 @@ export function TransactionForm({
                     });
 
                     setProjectId(project.id);
+                    if (!clientId && project.clientId) {
+                      setClientId(project.clientId);
+                    }
+                    setInferredCurrency(getProjectCurrency(project));
                     if (!branchIdTouched) {
                       setBranchId(
                         getProjectBranchId(project) ||
@@ -1541,50 +1817,6 @@ export function TransactionForm({
             </div>
           </div>
         ) : null}
-
-        <div className="rounded-xl border border-slate-200 bg-white">
-          <button
-            type="button"
-            onClick={() => setShowOptionalDetails((current) => !current)}
-            className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
-            aria-expanded={showOptionalDetails}
-          >
-            <span className="text-sm font-medium text-slate-900">
-              Optional Details
-            </span>
-            <ChevronDown
-              className={`h-4 w-4 text-slate-500 transition-transform ${showOptionalDetails ? "rotate-180" : ""
-                }`}
-            />
-          </button>
-
-          {showOptionalDetails ? (
-            <div className="space-y-3 border-t border-slate-200 px-3 py-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-600">
-                  Receipt / Invoice
-                </Label>
-                <Input
-                  type="file"
-                  accept=".pdf,image/jpeg,image/png,image/webp"
-                  onChange={(event) => setFile(event.target.files?.[0] || null)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-600">
-                  Notes
-                </Label>
-                <Textarea
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  placeholder="Add extra details..."
-                  className="min-h-16"
-                />
-              </div>
-            </div>
-          ) : null}
-        </div>
 
         {error ? (
           <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
