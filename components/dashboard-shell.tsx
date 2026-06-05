@@ -181,27 +181,29 @@ function SidebarNavItem({
         href={href}
         title={expanded ? undefined : title}
         className={cn(
-          "relative grid h-11 items-center rounded-lg text-sm font-medium transition-all duration-300 ease-in-out",
+          "relative grid h-11 items-center rounded-lg border text-sm font-medium transition-all duration-300 ease-in-out",
           expanded
             ? "w-full grid-cols-[2rem_1fr] gap-3 px-3.5"
             : "ml-[10px] h-11 w-11 grid-cols-[2rem_0fr] rounded-lg px-1.5",
           isActive
-            ? "bg-slate-950 text-white shadow-sm shadow-slate-200"
-            : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-950",
+            ? "border-slate-950 bg-slate-950 text-white shadow-sm shadow-slate-200 dark:border-white/10 dark:bg-slate-800/70 dark:text-slate-50 dark:shadow-none"
+            : "border-transparent text-slate-600 hover:bg-slate-100/70 hover:text-slate-950 dark:text-slate-400 dark:hover:border-white/10 dark:hover:bg-white/5 dark:hover:text-slate-100",
         )}
       >
         <span
           className={cn(
             "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition-all duration-200 ease-in-out",
-            isActive ? "bg-white/10" : "group-hover:bg-slate-50",
+            isActive
+              ? "bg-white/10 dark:bg-white/5"
+              : "group-hover:bg-white/70 dark:group-hover:bg-white/5",
           )}
         >
           <Icon
             className={cn(
               "h-4 w-4 flex-shrink-0 transition-all duration-200 ease-in-out",
               isActive
-                ? "text-white"
-                : "text-slate-500 group-hover:text-slate-700",
+                ? "text-white dark:text-slate-100"
+                : "text-slate-500 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-200",
             )}
           />
         </span>

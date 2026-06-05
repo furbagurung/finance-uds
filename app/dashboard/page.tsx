@@ -15,11 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  BadgeDollarSign,
-  Building2,
-  CircleDollarSign,
-  CreditCard,
-  ReceiptText,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -95,8 +90,6 @@ export default async function DashboardPage({
       amount: true,
       date: true,
       expenseScope: true,
-      isBillable: true,
-      isReimbursed: true,
     },
   });
 
@@ -111,6 +104,8 @@ export default async function DashboardPage({
   const totalExpenses = transactions
     .filter((transaction) => transaction.type === "EXPENSE")
     .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
+
+  const netProfitLoss = totalIncome - totalExpenses;
 
   const totalWithdrawals = transactions
     .filter((transaction) => transaction.type === "WITHDRAWAL")
@@ -133,27 +128,6 @@ export default async function DashboardPage({
         transaction.type === "EXPENSE" && transaction.expenseScope === "CLIENT",
     )
     .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
-
-  const billableClientExpenses = transactions
-    .filter(
-      (transaction) =>
-        transaction.type === "EXPENSE" &&
-        transaction.expenseScope === "CLIENT" &&
-        transaction.isBillable,
-    )
-    .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
-
-  const reimbursedClientExpenses = transactions
-    .filter(
-      (transaction) =>
-        transaction.type === "EXPENSE" &&
-        transaction.expenseScope === "CLIENT" &&
-        transaction.isReimbursed,
-    )
-    .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
-
-  const recoverableClientExpenses =
-    billableClientExpenses - reimbursedClientExpenses;
 
   const monthOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const hasCashflowData = transactions.some(
@@ -239,38 +213,14 @@ export default async function DashboardPage({
       helper: "Company + client expenses",
     },
     {
-      title: "Recoverable",
-      value: recoverableClientExpenses,
-      icon: BadgeDollarSign,
+      title: "Net Profit / Loss",
+      value: netProfitLoss,
+      icon: TrendingUp,
       href: buildTransactionsHref({
-        type: "EXPENSE",
         branchId: selectedBranchId,
       }),
-      tone: "yellow",
-      helper: "Billable client expenses",
-    },
-  ];
-
-  const miniStats = [
-    {
-      title: "Investment",
-      value: totalInvestment,
-      icon: CircleDollarSign,
-    },
-    {
-      title: "Withdrawals",
-      value: totalWithdrawals,
-      icon: CreditCard,
-    },
-    {
-      title: "Company Expenses",
-      value: companyExpenses,
-      icon: Building2,
-    },
-    {
-      title: "Client Expenses",
-      value: clientExpenses,
-      icon: ReceiptText,
+      tone: "blue",
+      helper: "Income minus expenses",
     },
   ];
 
@@ -359,7 +309,7 @@ export default async function DashboardPage({
                             ? "bg-emerald-50 text-emerald-600"
                             : stat.tone === "orange"
                               ? "bg-orange-50 text-orange-600"
-                              : "bg-yellow-50 text-yellow-600"
+                              : "bg-sky-50 text-sky-600"
                           }`}
                       >
                         <Icon className="h-5 w-5" />
@@ -368,33 +318,6 @@ export default async function DashboardPage({
                   </CardContent>
                 </Card>
               </Link>
-            );
-          })}
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {miniStats.map((stat) => {
-            const Icon = stat.icon;
-
-            return (
-              <Card
-                key={stat.title}
-                className="rounded-2xl border-slate-200 bg-white shadow-sm"
-              >
-                <CardContent className="flex items-center justify-between gap-4 p-5">
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">
-                      {stat.title}
-                    </p>
-                    <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-                      {formatCurrency(stat.value)}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-slate-100 p-3 text-slate-600">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                </CardContent>
-              </Card>
             );
           })}
         </div>
@@ -471,16 +394,6 @@ export default async function DashboardPage({
                   </span>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  <p className="text-sm text-slate-500">Recoverable Amount</p>
-                  <p className="mt-2 text-2xl font-bold text-slate-950">
-                    {formatCurrency(recoverableClientExpenses)}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Billable: {formatCurrency(billableClientExpenses)} · Reimbursed:{" "}
-                    {formatCurrency(reimbursedClientExpenses)}
-                  </p>
-                </div>
               </div>
             </CardContent>
           </Card>
